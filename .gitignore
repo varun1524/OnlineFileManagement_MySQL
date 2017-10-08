@@ -1,0 +1,33 @@
+# See https://help.github.com/ignore-files/ for more about ignoring files.
+
+# dependencies
+/dropbox_client/node_modules
+/dropbox_server/node_modules
+
+# testing
+/dropbox_client/coverage
+/dropbox_server/coverage
+
+# production
+/dropbox_client/build
+/dropbox_server/build
+
+# misc
+/dropbox_client/.DS_Store
+/dropbox_client/.env.local
+/dropbox_client/.env.development.local
+/dropbox_client/.env.test.local
+/dropbox_client/.env.production.local
+/dropbox_server/.DS_Store
+/dropbox_server/.env.local
+/dropbox_server/.env.development.local
+/dropbox_server/.env.test.local
+/dropbox_server/.env.production.local
+
+
+/dropbox_server/npm-debug.log*
+/dropbox_server/yarn-debug.log*
+/dropbox_server/yarn-error.log*
+/dropbox_server/npm-debug.log*
+/dropbox_server/yarn-debug.log*
+/dropbox_server/yarn-error.log*
