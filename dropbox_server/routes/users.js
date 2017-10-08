@@ -1,15 +1,18 @@
 let express = require('express');
 let router = express.Router();
 let multer = require('multer');
+let mysql = require('./mysql');
+let datetime = require('datetime');
 // let glob = require('glob');
 let formiddable = require('formidable');
 let fs = require('fs');
 // let tree = require('direcotrytree');
 let filePath="";
 
-let storage = multer.diskStorage(
 
+let storage = multer.diskStorage(
     {
+
     destination: function (req, file, cb) {
         console.log("path:"+filePath);
         if(req.session.username!==undefined) {
@@ -20,10 +23,24 @@ let storage = multer.diskStorage(
         }
     },
     filename: function (req, file, cb) {
-        console.log(file.originalname);
+        // console.log(file.originalname);
         cb(null, file.originalname);
+        fs.exists("./dropboxstorage/" + req.session.username + "/" + filePath, function (exist) {
+            let username = req.session.username;
+            if(exist){
+                if(this.insertIntoStorage(file.originalname, "./dropboxstorage/" + req.session.username + "/" + filePath+ file.originalname, "f", username)){
+                    console.log("Successfully added "+file.originalname +" into database");
+                }
+                else {
+                    console.log("Failed to add "+file.originalname +" into database");
+                }
+            }
+            else {
+                console.log("File does not exist in the storage on specified path");
+                res.status(301).send({"message":"File does not exist in the storage on specified path"});
+            }
+        });
     }
-
 });
 
 let upload = multer({storage:storage}).any();
@@ -116,14 +133,16 @@ router.post('/createDir', function(req, res, next){
                 console.log("Create Directory Path: "+createDirpath);
                 console.log("User Directory Path: "+userDirpath);
                 if(!fs.existsSync(createDirpath)) {
-                    fs.mkdirSync(createDirpath, function (err) {
+                    fs.mkdir(createDirpath, null, function (err) {
+                        console.log(err);
                         if (err) {
                             throw ("failed to create directory" + err);
                         } else {
                             console.log("Directory Created Successfully");
+                            this.insertIntoStorage(req.body.directoryName, createDirpath, "d", username);
+                            res.status(201).send({message: "Directory Created Successfully"});
                         }
                     });
-                    res.status(201).send({message: "Directory Created Successfully"});
                 }
                 else {
                     res.status(301).send({message: "Directory already exists"});
@@ -167,11 +186,11 @@ router.post('/upload', function (req, res, next) {
         console.log(req.body);
         if(req.session.username!==undefined) {
             upload(req, res, function (err) {
-                console.log(req.body);
+                // console.log(req.body);
                 if (err) {
                     console.log("error")
                 } else {
-                    console.log("succeess")
+                    console.log("File Successfully Uploaded");
                     res.status(201).send({"message": "Successfully Uploaded"});
                 }
             });
@@ -184,6 +203,57 @@ router.post('/upload', function (req, res, next) {
     catch (e){
         console.log(e);
         res.status(301).end();
+    }
+});
+
+insertIntoStorage = ((name, path, type, username)=>{
+    try{
+        console.log(name);
+        console.log(path);
+        console.log(type);
+        console.log(username);
+        let ctime;
+        let mtime;
+        let size;
+        fs.stat((path), function (err, stats) {
+            if (err) {
+                throw ("Error while fetching list of files/folders .Error: " + err)
+            }
+            ctime = stats["ctime"];
+            mtime = stats["mtime"];
+            size = stats["size"];
+
+            console.log(ctime);
+            console.log(mtime);
+            console.log(size);
+            let insertQuery="insert into dropboxstorage (name, type, path, creationtime, modifiedtime, size, ownerusername) values('"+name+"','"+type+"','"+path+"','"+ctime+"','"+mtime+"','"+size+"','"+username+"');";
+            console.log("Insert Query : " + insertQuery);
+
+            mysql.insertData(function(err,results){
+                console.log(results);
+                if(err){
+                    throw err;
+                }
+                else
+                {
+                    console.log("Affected Rows: "+results.affectedRows);
+                    console.log(results);
+                    if(results.affectedRows === 1){
+                        console.log("valid Login");
+                        return true;
+                    }
+                    else {
+                        console.log("Error while inserting data into database");
+                        return false;
+                    }
+                }
+            },insertQuery);
+
+        });
+    }
+    catch (e){
+        console.log(e);
+        return false;
     }
 });
 

@@ -166,41 +166,35 @@ class Home extends Component {
                     });
                     state.dirpath = state.dirpath + path.path;
                 }
-                else {
+                else if(response.status === 201) {
                     response.json().then((data) => {
-                        if (response.status === 201) {
-                            console.log(data);
-                            this.setState({
-                                ...this.state,
-                                dirData: data,
-                                message: "Directory Data Received",
-                            });
-                            state.dirpath = state.dirpath + path.path;
-                        }
-                        else if (response.status === 301) {
-                            this.setState({
-                                ...this.state,
-                                message: "Error while loading directories"
-                            });
-                            console.log(data.message);
-                        }
-                        else if (response.status === 203) {
-                            this.setState({
-                                ...this.state,
-                                message: data.message
-                            });
-                            console.log(data.message);
-                            this.props.handlePageChange("/");
-                        }
-                        else {
-                            console.log("Error");
-                        }
+                        console.log(data);
+                        this.setState({
+                            ...this.state,
+                            dirData: data,
+                            message: "Directory Data Received",
+                        });
+                        state.dirpath = state.dirpath + path.path;
                     });
                 }
+                else if (response.status === 301) {
+                    this.setState({
+                        ...this.state,
+                        message: "Error while loading directories"
+                    });
+                }
+                else if (response.status === 203) {
+                    this.setState({
+                        ...this.state,
+                        message: "Session Expired."
+                    });
+                    this.props.handlePageChange("/");
+                }
+                else {
+                    console.log("Error");
+                }
             });
-            console.log(state);
         });
-
     });
 
     fetchSelectedDirectoryData = ((item) => {

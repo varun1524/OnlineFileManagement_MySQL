@@ -3,7 +3,7 @@
 # dependencies
 /dropbox_client/node_modules
 /dropbox_server/node_modules
-
+/dropbox_server/dropboxstorage
 # testing
 /dropbox_client/coverage
 /dropbox_server/coverage
@@ -31,3 +31,5 @@
 /dropbox_server/npm-debug.log*
 /dropbox_server/yarn-debug.log*
 /dropbox_server/yarn-error.log*
+
+
