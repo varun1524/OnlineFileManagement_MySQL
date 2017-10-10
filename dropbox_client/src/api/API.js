@@ -129,6 +129,22 @@ export const sendDirectorayPath = (payload) =>
             return error;
         });
 
+export const doShareData = (payload) =>
+    fetch (`${api}/users/share`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
 
 /*
 export const doCalculate = (payload) =>

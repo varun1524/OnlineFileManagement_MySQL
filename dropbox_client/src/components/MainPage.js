@@ -176,7 +176,6 @@ class MainPage extends Component {
                                 handleLogout={this.handleLogout}
                                 handlePageChange={this.handlePageChange}
                             />
-                            <Message message={this.state.message}/>
                         </div>
                     )}/>
 

@@ -38,7 +38,7 @@ function fetchData(callback,sqlQuery){
 	
 	console.log("\nSQL Query::"+sqlQuery);
 
-	var connection=getConnection();
+	let connection=getConnection();
 
 	connection.query(sqlQuery, function(err, rows) {
 		if(err){

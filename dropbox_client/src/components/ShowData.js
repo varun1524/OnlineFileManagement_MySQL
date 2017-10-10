@@ -1,18 +1,48 @@
 import React, {Component} from 'react';
-// import { Link } from 'react-router-dom'
-// import Login from "./Login";
+import favourite_empty from "../images/favourite_empty.png"
+import favourite_filled from "../images/favourite_filled.png";
+import Delete from "../images/Delete.png";
+import directoryIcon from "../images/directory.png";
+import fileIcon from "../images/file.png";
+import share from "../images/share.png"
 
 class ShowData extends Component{
 
     constructor(){
         super();
         this.state = {
-            firstname: "",
-            lastname: "",
-            username: "",
-            password: ""
+            hover: false,
         };
     }
+
+    toggleHover = (()=>{
+        if (this.state.hover) {
+            // alert("Red");
+        } else {
+            // alert("Blue");
+        }
+        this.setState({hover: !this.state.hover})
+    });
+
+    handleMouseHover = (()=>{
+        if (this.state.hover) {
+            alert("Red");
+        } else {
+            alert("Blue");
+        }
+    });
+
+    showItemType = ((type) => {
+        if(type === "d"){
+            // return "Directory";
+            return (
+                <img src={directoryIcon} width="20" height="20" alt="Directory"/>
+            );
+        }
+        else if (type === "f") {
+            return (<img src={fileIcon} width="20" height="20" alt="Directory"/>);
+        }
+    });
 
     render(){
 
@@ -20,23 +50,29 @@ class ShowData extends Component{
 
         return(
             <tbody>
-                <tr>
-                    <td className="text-justify col-sm-1 col-md-1">
-                        <input type="button" value={ item.name } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}}/>
-                    </td>
-                    <td>
-                        { item.type }
-                    </td>
-                    <td>
-                        { item.ctime }
-                    </td>
-                    <td>
-                        { item.mtime }
-                    </td>
-                    <td>
-                        { item.size }
-                    </td>
-                </tr>
+            <tr>
+
+                <td className="text-justify">
+                    <div className="u-table-row">
+                    {this.showItemType(item.type)}
+                    <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}}/>
+                    </div>
+                </td>
+                <td>
+                    { item.mtime }
+                </td>
+                <td>
+                    { item.size }
+                </td>
+                <td >
+                    <button className="btn btn-link" onClick={()=>{this.props.handleDelete(item)}}>
+                        <img src={Delete} alt="delete" width="15" height="15"/>
+                    </button>
+                    <button className="btn btn-link" onClick={()=>{this.props.handleShare(item)}}>
+                        <img src={share} alt="share" width="15" height="15"/>
+                    </button>
+                </td>
+            </tr>
             </tbody>
         );
     }

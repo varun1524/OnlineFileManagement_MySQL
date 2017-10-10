@@ -1,10 +1,9 @@
 import React, {Component} from 'react';
-// import ReactDOM from 'react-dom';
 import dropboxLogo from '../images/dropbox.png'
 import * as API from '../api/API';
-// import Table from './test'
-// import JsonTable from 'react-json-table';
 import ShowData from './ShowData';
+// import '../../node_modules/elemental/less/elemental.less';
+// import { Button, Alert, Spinner, Modal, ModalBody, ModalFooter, ModalHeader } from 'elemental'
 
 class Home extends Component {
 
@@ -19,10 +18,54 @@ class Home extends Component {
             message : "",
             dirpath : "",
             dirData : [],
+            // modelIsOpen : true
         };
 
         this.fetchSelectedDirectoryData = this.fetchSelectedDirectoryData.bind(this);
     }
+
+    // toggleModal = (()=>{
+    //
+    // });
+
+    handleDelete = ((item)=>{
+        alert(item.id);
+        alert(this.state.dirpath);
+    });
+
+    handleShare = ((item)=>{
+        console.log(JSON.stringify(item));
+        let sharingData = prompt("Please enter email id of users separated by semicolon ';' ");
+        if (sharingData === null) {
+            console.log("User cancelled the prompt.");
+        }
+        else {
+            sharingData = sharingData.trim();
+            if(sharingData === "")
+            {
+                console.log("User cancelled the prompt.");
+            }
+            else {
+                let sharingIds;
+                sharingIds = sharingData.split(";");
+                let data = [];
+                sharingIds.every((id) => {
+                    let temp = {};
+                    if (id === "") {
+                        sharingIds.splice(sharingIds.indexOf(id), 1);
+                        return id;
+                    }
+                    temp["id"] = item.id;
+                    temp["username"] = id;
+                    data.push(temp);
+                    return id;
+                });
+                API.doShareData(data).then((response) => {
+                    console.log(response);
+                });
+            }
+        }
+    });
 
     handleFileUpload = (event) => {
         const payload = new FormData();
@@ -76,6 +119,7 @@ class Home extends Component {
     };
 
     addDictionary = (()=> {
+
         let directoryName = prompt("Please enter directory name:", "New Folder");
         if (directoryName === null || directoryName === "") {
             console.log("User cancelled the prompt.");
@@ -205,7 +249,7 @@ class Home extends Component {
             };
             console.log(state.dirpath);
 
-            if(item.type==="directory") {
+            if(item.type==="d") {
                 state.dirpath = path.path;
                 API.getDirectoryData(path).then((response) => {
                     if (response.status === 204) {
@@ -264,46 +308,17 @@ class Home extends Component {
 
 
     componentWillMount(){
-        // let path = {
-        //   path: this.state.dirpath.trim()
-        // };
-        //
-        //
-        // console.log(this.state.dirpath);
         API.getSession().then((status)=>{
-           if(status===201){
-               this.fetchDirectoryData(this.state.dirpath);
-           }
-           else if(status===203){
-               this.props.handlePageChange("/");
-           }
-           else{
-               console.log("Error");
-           }
+            if(status===201){
+                this.fetchDirectoryData(this.state.dirpath);
+            }
+            else if(status===203){
+                this.props.handlePageChange("/");
+            }
+            else{
+                console.log("Error");
+            }
         });
-
-        // this.fetchDirectoryData(this.state.dirpath);
-        // API.getDirectoryData(path).then((response) => {
-        //     response.json().then((data) => {
-        //         if(response.status === 201){
-        //             console.log(data);
-        //             this.setState({
-        //                 dirData:data,
-        //                 message:"Directory Data Received"
-        //             });
-        //         }
-        //         else if (response.status === 301){
-        //             this.setState({
-        //                 ...this.state,
-        //                 message:"Error while fetching directories"
-        //             });
-        //             console.log(data.errorMessage);
-        //         }
-        //         else {
-        //             console.log("Error");
-        //         }
-        //     });
-        // });
     }
 
     componentDidMount(){
@@ -326,54 +341,60 @@ class Home extends Component {
             <div className="container-fluid">
                 <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12 ">
                     <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12 ">
-                        <div className="row">
-                            <div className="col-lg-3 col-md-3 col-sm-3 col-xs-3 ">
-                                <img src={dropboxLogo} width="50" height="50" alt="DropBox" align="left"/>
+                        <div className="row" height="50">
+                            <div align="left">
+                                <img className="" src={dropboxLogo} width="50" height="50" alt="DropBox" align="left"/>
+                            </div>
+                            <div align="right">
+                                <button className="btn-link" onClick={this.props.handleLogout}>Logout</button>
+
                             </div>
                             <div>
-                                <button onClick={this.props.handleLogout}>Logout</button>
+                                {this.props.username && ( //Just a change here
+                                    <div className="text-right" role="alert">
+                                        Welcome {this.props.username}
+                                    </div>
+                                )}
+                                {/*{this.props.username && ( //Just a change here*/}
+                                {/*<div className="alert alert-warning" role="alert">*/}
+                                {/*{this.props.username}*/}
+                                {/*</div>*/}
+                                {/*)}*/}
                             </div>
                         </div>
-                        <div className="row">
-                            <div className="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-                                <div className="btn-group-vertical">
-                                    <div className="row">
-                                        <button>Home</button>
-                                    </div>
-                                    <div className="row">
-                                        <button>Files</button>
+                        <br/>
+                        <div className="row" >
+                            <div className="col-lg-1 col-md-1 col-sm-1 col-xs-1 col-mg-offset-2" align="left">
+                                <div className="container-fluid " >
+                                    <div className="btn-group-vertical">
+                                        <div className="row">
+                                            <button className="btn-link">Home</button>
+                                        </div>
+                                        <div className="row">
+                                            <button className="btn-link">Files</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="col-lg-8 col-xs-8 col-md-8 col-sm-8">
-                                Hellooowwwwwwwsssssss
+                            <div className="col-lg-9 col-xs-9 col-md-9 col-sm-9">
                                 <div className="row">
-                                    {this.props.username && ( //Just a change here
-                                        <div className="alert alert-warning" role="alert">
-                                            {this.props.username}
-                                        </div>
-                                    )}
+
                                 </div>
                                 <div className="row">
                                     <div className="row">
-                                        <input type="button" value="Add Directory" onClick={()=>this.addDictionary()}/>
-                                        {this.state.message && ( //Just a change here
-                                            <div className="alert alert-warning" role="alert">
-                                                {this.state.message}
-                                            </div>
-                                        )}
+
                                     </div>
                                     <div className="row" id="example">
-                                        <div className="table-responsive">
-                                            <table className="table">
+                                        <div className="table table-responsive ">
+                                            <table className="table table-responsive text-justify ">
                                                 <thead>
-                                                    <tr>
-                                                        <th>name</th>
-                                                        <th>type</th>
-                                                        <th>ctime</th>
-                                                        <th>mtime</th>
-                                                        <th>sizr</th>
-                                                    </tr>
+                                                <tr>
+                                                    <th>name</th>
+                                                    {/*<th>type</th>*/}
+                                                    {/*<th>ctime</th>*/}
+                                                    <th>mtime</th>
+                                                    <th>size</th>
+                                                </tr>
                                                 </thead>
                                                 <tr>
                                                     <td className="text-justify">
@@ -385,6 +406,8 @@ class Home extends Component {
                                                         return(<ShowData
                                                             key={index}
                                                             item={item}
+                                                            handleDelete = {this.handleDelete}
+                                                            handleShare = {this.handleShare}
                                                             fetchSelectedDirectoryData = {this.fetchSelectedDirectoryData}
                                                         />)
                                                     })
@@ -395,17 +418,41 @@ class Home extends Component {
                                     </div>
                                 </div>
                             </div>
-                            <div className="col-lg-2 col-xs-2 col-md-2 col-sm-2">
-                                Hellooowwwwwwwsssssss
-                                <form>
-                                <input
-                                    className={'fileupload'}
-                                    type="file"
-                                    name="mydata"
-                                    multiple="multiple"
-                                    onChange={this.handleFileUpload}
-                                />
-                                </form>
+                            <div className="col-lg-2 col-xs-2 col-md-2 col-sm-2 right">
+                                <div className="container-fluid right">
+                                    <div className="row">
+                                        {this.state.message && ( //Just a change here
+                                            <div className="alert alert-info" >
+                                                {this.state.message}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="row">
+                                        <button className="btn btn-primary" value="Add Directory" onClick={()=>this.addDictionary()}>
+                                            Add Directory
+                                        </button>
+                                        {/*<Modal isOpen={this.state.modalIsOpen} onCancel={this.toggleModal} backdropClosesModal>*/}
+                                        {/*<ModalHeader text="Lots of text to show scroll behavior" showCloseButton onClose={this.toggleModal} />*/}
+                                        {/*<ModalBody>[...]</ModalBody>*/}
+                                        {/*<ModalFooter>*/}
+                                        {/*<Button type="primary" onClick={this.toggleModal}>Close modal</Button>*/}
+                                        {/*<Button type="link-cancel" onClick={this.toggleModal}>Also closes modal</Button>*/}
+                                        {/*</ModalFooter>*/}
+                                        {/*</Modal>*/}
+
+                                    </div>
+                                    <div className="row">
+                                        <form>
+                                            <input
+                                                className="fileupload"
+                                                type="file"
+                                                name="mydata"
+                                                multiple="multiple"
+                                                onChange={this.handleFileUpload}
+                                            />
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
