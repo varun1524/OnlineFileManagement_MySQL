@@ -42,7 +42,7 @@ export const getSession = () =>
         method: 'GET',
         credentials:'include'
     }).then(res => {
-        return res.status;
+        return res;
     })
         .catch(error => {
             console.log("This is error");
@@ -145,6 +145,128 @@ export const doShareData = (payload) =>
         console.log("Error: " + error);
         return error;
     });
+
+export const doRemoveSharing = (payload) =>
+    fetch (`${api}/users/removesharing`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+export const changeStarredStatus = (payload) =>
+    fetch (`${api}/users/changestarredstatus`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+export const fetchStarredData = (payload) =>
+    fetch (`${api}/users/getStarredData`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+export const fetchDataSharedByUser = (payload) =>
+    fetch (`${api}/users/getDataSharedByUser`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+
+export const fetchDataSharedWithUser = (payload) =>
+    fetch (`${api}/users/fetchDataSharedWithUser`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+export const accessSharedData = (payload) =>
+    fetch (`${api}/users/accessSharedData`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+export const fetchSelectedDataSharedWithUser = (payload) =>
+    fetch (`${api}/users/accessSelectedSharedData`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+// export const getStarredDirectoryData =
 
 /*
 export const doCalculate = (payload) =>

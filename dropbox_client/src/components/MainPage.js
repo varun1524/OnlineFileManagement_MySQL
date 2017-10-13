@@ -4,7 +4,7 @@ import SignUp from './SignUp';
 import * as API from '../api/API';
 import Login from './Login';
 import Message from './Message';
-import Home from './Home';
+import User from './User';
 import dropboxIcon from '../images/dropbox.png'
 
 class MainPage extends Component {
@@ -72,7 +72,7 @@ class MainPage extends Component {
                         username: loginData.username
                     });
                     sessionStorage.setItem('username',loginData.username);
-                    this.props.history.push("/user")
+                    this.handlePageChange("/user/home")
                 }
                 else if(status===301){
                     this.setState({
@@ -140,7 +140,7 @@ class MainPage extends Component {
                                     </div>
                                     <div className="row">
                                         <div className="col-lg-7 col-xs-7 col-md-7 col-sm-7">
-                                            vghvghvghvvbubu
+                                            Hello
                                         </div>
                                         <div className="col-lg-5 col-xs-5 col-md-5 col-sm-5">
                                             <Switch>
@@ -171,14 +171,13 @@ class MainPage extends Component {
                     )}/>
                     <Route path="/user" render={() => (
                         <div>
-                            <Home
+                            <User
                                 username={this.state.username}
                                 handleLogout={this.handleLogout}
                                 handlePageChange={this.handlePageChange}
                             />
                         </div>
                     )}/>
-
                 </Switch>
             </div>
         )

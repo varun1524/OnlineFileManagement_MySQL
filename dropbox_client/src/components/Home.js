@@ -1,9 +1,11 @@
 import React, {Component} from 'react';
-import dropboxLogo from '../images/dropbox.png'
 import * as API from '../api/API';
-import ShowData from './ShowData';
+import StarredData from './StarredData';
+import SharedByMe from "./SharedByMe";
+import SharedWithMe from './SharedWithMe';
 // import '../../node_modules/elemental/less/elemental.less';
 // import { Button, Alert, Spinner, Modal, ModalBody, ModalFooter, ModalHeader } from 'elemental'
+import File from './File';
 
 class Home extends Component {
 
@@ -17,151 +19,58 @@ class Home extends Component {
         this.state = {
             message : "",
             dirpath : "",
-            dirData : [],
-            // modelIsOpen : true
+            starredData : [],
+            sharedByMeData : [],
+            sharedWithMeData : [],
+            sharedWithMePath : ""
         };
-
-        this.fetchSelectedDirectoryData = this.fetchSelectedDirectoryData.bind(this);
     }
 
-    // toggleModal = (()=>{
-    //
-    // });
-
-    handleDelete = ((item)=>{
-        alert(item.id);
-        alert(this.state.dirpath);
-    });
-
-    handleShare = ((item)=>{
-        console.log(JSON.stringify(item));
-        let sharingData = prompt("Please enter email id of users separated by semicolon ';' ");
-        if (sharingData === null) {
-            console.log("User cancelled the prompt.");
-        }
-        else {
-            sharingData = sharingData.trim();
-            if(sharingData === "")
-            {
-                console.log("User cancelled the prompt.");
-            }
-            else {
-                let sharingIds;
-                sharingIds = sharingData.split(";");
-                let data = [];
-                sharingIds.every((id) => {
-                    let temp = {};
-                    if (id === "") {
-                        sharingIds.splice(sharingIds.indexOf(id), 1);
-                        return id;
-                    }
-                    temp["id"] = item.id;
-                    temp["username"] = id;
-                    data.push(temp);
-                    return id;
-                });
-                API.doShareData(data).then((response) => {
-                    console.log(response);
-                });
-            }
-        }
-    });
-
-    handleFileUpload = (event) => {
-        const payload = new FormData();
-        let fileArray = event.target.files;
-        Array.from(fileArray).map((file)=>{
-            console.log(file);
-            payload.append('mypic',file);
-            return file;
-        });
-
-        let path;
-        if(this.state.dirpath.trim()!=="" || this.state.dirpath!==undefined || this.state.dirpath!==null){
-            path = {
-                "path" : this.state.dirpath
-            };
-        }
-        else {
-            path = {
-                "path" : ""
-            };
-        }
-        API.sendDirectorayPath(path).then((response) => {
+    handleStarred = ((item) => {
+        // console.log(item);
+        let data={
+            id:"",
+            changeStatusTo:""
+        };
+        data.id = item.id;
+        data.changeStatusTo = !(item.starred);
+        console.log(data);
+        API.changeStarredStatus(data).then((response)=>{
             if(response.status===201){
-                API.uploadFile(payload)
-                    .then((status) => {
-                        if (status === 201) {
-                            this.setState({
-                                ...this.state,
-                                message: "File uploaded successfully"
-                            });
-                            this.fetchDirectoryData();
-                            console.log("File uploaded successfully");
-                        }
-                        else if(status === 203){
-                            console.log("Session Timed Out");
-                            this.props.handlePageChange("/home/signup");
-                        }
-                        else if(status === 301){
-                            console.log("Error while uploading file");
-                        }
-                        else {
-                            console.log("File upload failed");
-                        }
+                response.json().then((data) => {
+                    let msg="";
+                    if(item.starred){
+                        msg= "Removed from Favourite";
+                    }
+                    else {
+                        msg= "Added to Favourite";
+                    }
+
+                    this.setState({
+                        message: msg
                     });
+
+                    this.fetchStarredData();
+                });
             }
-            else if(response.status === 203) {
-                console.log("Session Expired");
+            else if(response.status===203){
+                this.setState({
+                    message: "Session Expired. Login again."
+                });
                 this.props.handlePageChange("/");
             }
-        });
-    };
-
-    addDictionary = (()=> {
-
-        let directoryName = prompt("Please enter directory name:", "New Folder");
-        if (directoryName === null || directoryName === "") {
-            console.log("User cancelled the prompt.");
-        }
-        else {
-            if(directoryName.trim()!=='') {
-                console.log("Directory Name: " + directoryName);
-                let data = {
-                    directoryName: directoryName,
-                    dirpath: this.state.dirpath
-                };
-                console.log(data);
-                API.createDirectory(data).then((response) => {
-                    response.json().then((msg)=>{
-                        console.log(msg);
-                        if(response.status===201){
-                            this.setState({
-                                ...this.state,
-                                message : msg.message
-                            });
-                            this.fetchDirectoryData(this.state.dirpath);
-                        }
-                        else if(response.status === 301) {
-                            this.setState({
-                                ...this.state,
-                                message : msg.message
-                            })
-                        }
-
-                    });
+            else if(response.status===301){
+                this.setState({
+                    message: "Error while changing Favourite status"
                 });
             }
-            else {
-                console.log("Directory Name is Empty");
-            }
-        }
+        });
     });
 
     redirectParentDirectory(){
-        console.log(this.state.dirpath);
-        if(this.state.dirpath.trim()!=="" || this.state.dirpath!==undefined || this.state.dirpath!==null){
-            let splitPath = this.state.dirpath.trim().split("/");
+        console.log(this.state.sharedWithMePath);
+        if(this.state.sharedWithMePath.trim()!=="" || this.state.sharedWithMePath!==undefined || this.state.sharedWithMePath!==null){
+            let splitPath = this.state.sharedWithMePath.trim().split("/");
             console.log(splitPath);
             let tempPath = "";
             if(splitPath.length>0) {
@@ -178,19 +87,19 @@ class Home extends Component {
 
             this.setState({
                 ...this.state,
-                dirpath : tempPath
+                sharedWithMePath : tempPath
             });
-            this.fetchDirectoryData();
+            // this.fetchSelectedDataSharedWithUser();
         }
         else {
             console.log("Already in Root Directory");
         }
     }
 
-    fetchDirectoryData = (() => {
+    fetchStarredData = (() => {
         this.setState((state) => {
             let tempPath="";
-            if(state.dirpath!==null || state.dirpath!== undefined) {
+            if(state.dirpath!==null || state.dirpath!== undefined || state.dirpath!== "") {
                 tempPath = state.dirpath + "/";
             }
             else{
@@ -201,11 +110,11 @@ class Home extends Component {
             };
             console.log(state.dirpath);
 
-            API.getDirectoryData(path).then((response) => {
+            API.fetchStarredData(path).then((response) => {
                 if (response.status === 204) {
                     this.setState({
                         ...this.state,
-                        dirData: [],
+                        starredData: [],
                         message: "Directory is Empty",
                     });
                     state.dirpath = state.dirpath + path.path;
@@ -215,7 +124,7 @@ class Home extends Component {
                         console.log(data);
                         this.setState({
                             ...this.state,
-                            dirData: data,
+                            starredData: data,
                             message: "Directory Data Received",
                         });
                         state.dirpath = state.dirpath + path.path;
@@ -230,7 +139,7 @@ class Home extends Component {
                 else if (response.status === 203) {
                     this.setState({
                         ...this.state,
-                        message: "Session Expired."
+                        message: "Session Expired. Login Again"
                     });
                     this.props.handlePageChange("/");
                 }
@@ -243,76 +152,272 @@ class Home extends Component {
 
     fetchSelectedDirectoryData = ((item) => {
         console.log(item);
-        this.setState((state) => {
-            let path={
-                "path": state.dirpath + item.name +"/"
-            };
-            console.log(state.dirpath);
+        if(item.type==="d") {
+            API.getSession().then((response)=> {
+                if(response.status===201){
+                    response.json().then((data)=>{
+                        let userpath = "./dropboxstorage/"+data.username+"/";
+                        console.log(userpath);
 
-            if(item.type==="d") {
-                state.dirpath = path.path;
-                API.getDirectoryData(path).then((response) => {
-                    if (response.status === 204) {
+                        let i = userpath.length;
+                        console.log(i);
+                        let path = item.path.substr(i,item.path.length) + item.name + "/";
+                        console.log(path);
+                        this.props.redirectToFile(path);
+                    });
+                }
+                else if(response.status===203){
+                    console.log("Session Expired");
+                    this.props.handlePageChange("/");
+                }
+            });
+        }
+
+        // this.setState((state) => {
+        //     let path={
+        //         "path": item.path + item.name +"/"
+        //     };
+        //
+        //     if(item.type==="d") {
+        //         API.getStarredDirectoryData(path.path).then((response) => {
+        //             if (response.status === 204) {
+        //                 this.setState({
+        //                     ...this.state,
+        //                     starredData: [],
+        //                     message: "Directory is Empty",
+        //                 });
+        //             }
+        //             else {
+        //                 response.json().then((data) => {
+        //                     if (response.status === 201) {
+        //                         console.log(data);
+        //                         this.setState({
+        //                             ...this.state,
+        //                             starredData: data,
+        //                             message: "Directory Data Received",
+        //                         });
+        //                     }
+        //                     // else if (response.status === 204) {
+        //                     //     this.setState({
+        //                     //         ...this.state,
+        //                     //         dirData: data
+        //                     //     });
+        //                     //     console.log(data.message);
+        //                     // }
+        //                     else if (response.status === 301) {
+        //                         this.setState({
+        //                             ...this.state,
+        //                             message: "Error while loading directories"
+        //                         });
+        //                         console.log(data.message);
+        //                     }
+        //                     else if (response.status === 203) {
+        //                         this.setState({
+        //                             ...this.state,
+        //                             message: data.message
+        //                         });
+        //                         console.log(data.message);
+        //                         this.props.handlePageChange("/");
+        //                     }
+        //                     else {
+        //                         console.log("Error");
+        //                     }
+        //                 });
+        //             }
+        //         });
+        //     }
+        //     else{
+        //         console.log("You selected file");
+        //     }
+        //     console.log(state);
+        // });
+
+    });
+
+    fetchDataSharedByUser = (()=>{
+        this.setState((state) => {
+
+            API.fetchDataSharedByUser().then((response) => {
+                if (response.status === 204) {
+                    this.setState({
+                        ...this.state,
+                        sharedByMeData: [],
+                        message: "Directory is Empty",
+                    });
+                    // state.dirpath = state.dirpath + path.path;
+                }
+                else if(response.status === 201) {
+                    response.json().then((data) => {
+                        console.log(data);
                         this.setState({
                             ...this.state,
-                            dirData: [],
-                            message: "Directory is Empty",
+                            sharedByMeData: data,
+                            message: "Directory Data Received",
                         });
-                    }
-                    else {
-                        response.json().then((data) => {
-                            if (response.status === 201) {
-                                console.log(data);
-                                this.setState({
-                                    ...this.state,
-                                    dirData: data,
-                                    message: "Directory Data Received",
-                                });
-                            }
-                            // else if (response.status === 204) {
-                            //     this.setState({
-                            //         ...this.state,
-                            //         dirData: data
-                            //     });
-                            //     console.log(data.message);
-                            // }
-                            else if (response.status === 301) {
-                                this.setState({
-                                    ...this.state,
-                                    message: "Error while loading directories"
-                                });
-                                console.log(data.message);
-                            }
-                            else if (response.status === 203) {
-                                this.setState({
-                                    ...this.state,
-                                    message: data.message
-                                });
-                                console.log(data.message);
-                                this.props.handlePageChange("/");
-                            }
-                            else {
-                                console.log("Error");
-                            }
-                        });
-                    }
+                        // this.props.redirectToFile()
+                        // state.dirpath = state.dirpath + path.path;
+                    });
+                }
+                else if (response.status === 301) {
+                    this.setState({
+                        ...this.state,
+                        message: "Error while loading directories"
+                    });
+                }
+                else if (response.status === 203) {
+                    this.setState({
+                        ...this.state,
+                        message: "Session Expired. Login Again"
+                    });
+                    this.props.handlePageChange("/");
+                }
+                else {
+                    console.log("Error");
+                }
+            });
+        });
+    });
+
+    fetchDataSharedWithUser = (()=>{
+        API.fetchDataSharedWithUser().then((response) => {
+            if (response.status === 204) {
+                this.setState({
+                    ...this.state,
+                    sharedWithMeData: [],
+                    message: "Directory is Empty",
+                });
+                // state.dirpath = state.dirpath + path.path;
+            }
+            else if(response.status === 201) {
+                response.json().then((data) => {
+                    console.log(data);
+                    this.setState({
+                        ...this.state,
+                        sharedWithMeData: data,
+                        message: "Directory Data Received",
+                    });
                 });
             }
-            else{
-                console.log("You selected file");
+            else if (response.status === 301) {
+                this.setState({
+                    ...this.state,
+                    message: "Error while loading directories"
+                });
             }
-            console.log(state);
+            else if (response.status === 203) {
+                this.setState({
+                    ...this.state,
+                    message: "Session Expired. Login Again"
+                });
+                this.props.handlePageChange("/");
+            }
+            else {
+                console.log("Error");
+            }
         });
+    });
 
+//     fetchSelectedDataSharedWithUser =  (()=>{
+//         this.setState((state) => {
+//             let path = {
+//                 "path" : this.state.sharedWithMePath
+//             };
+//             API.fetchSelectedDataSharedWithUser(path).then((response) => {
+//                 if (response.status === 204) {
+//                     this.setState({
+//                         ...this.state,
+//                         sharedWithMeData: [],
+//                         message: "Directory is Empty",
+//                     });
+// // state.dirpath = state.dirpath + path.path;
+//                 }
+//                 else if(response.status === 201) {
+//                     response.json().then((data) => {
+//                         console.log(data);
+//                         this.setState({
+//                             ...this.state,
+//                             sharedWithMeData: data,
+//                             message: "Directory Data Received",
+//                         });
+//                         // this.props.redirectToFile()
+//                         // state.dirpath = state.dirpath + path.path;
+//                     });
+//                 }
+//                 else if (response.status === 301) {
+//                     this.setState({
+//                         ...this.state,
+//                         message: "Error while loading directories"
+//                     });
+//                 }
+//                 else if (response.status === 203) {
+//                     this.setState({
+//                         ...this.state,
+//                         message: "Session Expired. Login Again"
+//                     });
+//                     this.props.handlePageChange("/");
+//                 }
+//                 else {
+//                     console.log("Error");
+//                 }
+//             });
+//         });
+//     });
+
+    showParentButton = (()=>{
+        // if(this.state.dirpath!=="") {
+        return(
+            <input type="button" value="../.."
+                   className="btn btn-link btn-group-lg" onClick={() => {
+                this.redirectParentDirectory()
+            }}/>
+        )
+        // }
+    });
+
+    accessSharedData = ((item)=>{
+
+        if(item.type === "d") {
+            let data = {
+                item: item
+            };
+            API.accessSharedData(data).then((response) => {
+                if (response.status === 201) {
+                    response.json().then((data) => {
+                        console.log(data);
+                        this.setState({
+                            ...this.state,
+                            sharedWithMeData: data,
+                            sharedWithMePath: data[0].path
+                        })
+                    });
+                }
+                else if (response.status === 204) {
+                    this.setState({
+                        ...this.state,
+                        sharedWithMeData: [],
+                        sharedWithMePath: "",
+                    })
+                }
+                else if (response.status === 203) {
+                    console.log("Session Expired. Login Again.");
+                    this.props.handlePageChange("/");
+                }
+            });
+        }
+        else {
+            console.log("select file");
+        }
     });
 
 
     componentWillMount(){
-        API.getSession().then((status)=>{
-            if(status===201){
-                this.fetchDirectoryData(this.state.dirpath);
+        API.getSession().then((response)=>{
+            if(response.status===201){
+                this.fetchStarredData();
+                this.fetchDataSharedByUser();
+                this.fetchDataSharedWithUser();
             }
-            else if(status===203){
+            else if(response.status===203){
                 this.props.handlePageChange("/");
             }
             else{
@@ -339,121 +444,146 @@ class Home extends Component {
     render() {
         return (
             <div className="container-fluid">
-                <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12 ">
-                    <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12 ">
-                        <div className="row" height="50">
-                            <div align="left">
-                                <img className="" src={dropboxLogo} width="50" height="50" alt="DropBox" align="left"/>
-                            </div>
-                            <div align="right">
-                                <button className="btn-link" onClick={this.props.handleLogout}>Logout</button>
 
-                            </div>
-                            <div>
-                                {this.props.username && ( //Just a change here
-                                    <div className="text-right" role="alert">
-                                        Welcome {this.props.username}
-                                    </div>
-                                )}
-                                {/*{this.props.username && ( //Just a change here*/}
-                                {/*<div className="alert alert-warning" role="alert">*/}
-                                {/*{this.props.username}*/}
-                                {/*</div>*/}
-                                {/*)}*/}
-                            </div>
+                <div className="col-lg-9 col-xs-9 col-md-9 col-sm-9">
+                    <div className="row">
+
+                    </div>
+                    <div className="row">
+                        <div className="row">
+
                         </div>
-                        <br/>
-                        <div className="row" >
-                            <div className="col-lg-1 col-md-1 col-sm-1 col-xs-1 col-mg-offset-2" align="left">
-                                <div className="container-fluid " >
-                                    <div className="btn-group-vertical">
-                                        <div className="row">
-                                            <button className="btn-link">Home</button>
-                                        </div>
-                                        <div className="row">
-                                            <button className="btn-link">Files</button>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div className="row" id="example">
+                            <div className="table table-responsive ">
+                                <table className="table table-responsive text-justify ">
+                                    <thead>
+                                    <tr className="h3">Starred</tr>
+                                    <tr>
+                                        <th>name</th>
+                                        {/*<th>type</th>*/}
+                                        {/*<th>ctime</th>*/}
+                                        <th>mtime</th>
+                                        <th>size</th>
+                                    </tr>
+                                    </thead>
+                                    {/*<tr>*/}
+                                    {/*<td className="text-justify">*/}
+                                    {/*{this.showParentButton()}*/}
+                                    {/*</td>*/}
+                                    {/*</tr>*/}
+                                    {
+                                        this.state.starredData.map((item, index) => {
+                                            return(<StarredData
+                                                key={index}
+                                                item={item}
+                                                // handleDelete = {this.handleDelete}
+                                                // handleShare = {this.handleShare}
+                                                fetchSelectedDirectoryData = {this.fetchSelectedDirectoryData}
+                                                handleStarred = {this.handleStarred}
+                                            />)
+                                        })
+                                    }
+                                </table>
                             </div>
-                            <div className="col-lg-9 col-xs-9 col-md-9 col-sm-9">
-                                <div className="row">
-
-                                </div>
-                                <div className="row">
-                                    <div className="row">
-
-                                    </div>
-                                    <div className="row" id="example">
-                                        <div className="table table-responsive ">
-                                            <table className="table table-responsive text-justify ">
-                                                <thead>
-                                                <tr>
-                                                    <th>name</th>
-                                                    {/*<th>type</th>*/}
-                                                    {/*<th>ctime</th>*/}
-                                                    <th>mtime</th>
-                                                    <th>size</th>
-                                                </tr>
-                                                </thead>
-                                                <tr>
-                                                    <td className="text-justify">
-                                                        <input type="button" value=".." className="btn btn-link btn-group-lg" onClick={()=>{this.redirectParentDirectory()}}/>
-                                                    </td>
-                                                </tr>
-                                                {
-                                                    this.state.dirData.map((item, index) => {
-                                                        return(<ShowData
-                                                            key={index}
-                                                            item={item}
-                                                            handleDelete = {this.handleDelete}
-                                                            handleShare = {this.handleShare}
-                                                            fetchSelectedDirectoryData = {this.fetchSelectedDirectoryData}
-                                                        />)
-                                                    })
-                                                }
-                                            </table>
-                                        </div>
-                                        {/*<input type="button" value="Get Directory Data" onClick={()=>this.getDirectoryData()}/>*/}
-                                    </div>
-                                </div>
+                            {/*<input type="button" value="Get Directory Data" onClick={()=>this.getDirectoryData()}/>*/}
+                        </div>
+                        <div className="row" id="example">
+                            <div className="table table-responsive ">
+                                <table className="table table-responsive text-justify ">
+                                    <thead>
+                                    <tr className="h3">Shared by Me</tr>
+                                    <tr>
+                                        <th>name</th>
+                                        {/*<th>type</th>*/}
+                                        {/*<th>ctime</th>*/}
+                                        <th>mtime</th>
+                                        <th>size</th>
+                                    </tr>
+                                    {/*<tr>*/}
+                                    {/*<td className="text-justify">*/}
+                                    {/*{ this.showParentButton()}*/}
+                                    {/*</td>*/}
+                                    {/*</tr>*/}
+                                    </thead>
+                                    {
+                                        this.state.sharedByMeData.map((item, index) => {
+                                            return(<SharedByMe
+                                                key={index}
+                                                item={item}
+                                                // handleDelete = {this.handleDelete}
+                                                // handleShare = {this.handleShare}
+                                                fetchSelectedDirectoryData = {this.fetchSelectedDirectoryData}
+                                                handleStarred = {this.handleStarred}
+                                            />)
+                                        })
+                                    }
+                                </table>
                             </div>
-                            <div className="col-lg-2 col-xs-2 col-md-2 col-sm-2 right">
-                                <div className="container-fluid right">
-                                    <div className="row">
-                                        {this.state.message && ( //Just a change here
-                                            <div className="alert alert-info" >
-                                                {this.state.message}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="row">
-                                        <button className="btn btn-primary" value="Add Directory" onClick={()=>this.addDictionary()}>
-                                            Add Directory
-                                        </button>
-                                        {/*<Modal isOpen={this.state.modalIsOpen} onCancel={this.toggleModal} backdropClosesModal>*/}
-                                        {/*<ModalHeader text="Lots of text to show scroll behavior" showCloseButton onClose={this.toggleModal} />*/}
-                                        {/*<ModalBody>[...]</ModalBody>*/}
-                                        {/*<ModalFooter>*/}
-                                        {/*<Button type="primary" onClick={this.toggleModal}>Close modal</Button>*/}
-                                        {/*<Button type="link-cancel" onClick={this.toggleModal}>Also closes modal</Button>*/}
-                                        {/*</ModalFooter>*/}
-                                        {/*</Modal>*/}
-
-                                    </div>
-                                    <div className="row">
-                                        <form>
-                                            <input
-                                                className="fileupload"
-                                                type="file"
-                                                name="mydata"
-                                                multiple="multiple"
-                                                onChange={this.handleFileUpload}
-                                            />
-                                        </form>
-                                    </div>
-                                </div>
+                            {/*<input type="button" value="Get Directory Data" onClick={()=>this.getDirectoryData()}/>*/}
+                        </div>
+                        <div className="row" id="example">
+                            <div className="table table-responsive ">
+                                <table className="table table-responsive text-justify ">
+                                    <thead>
+                                    <tr className="h3">Shared With Me</tr>
+                                    <tr>
+                                        <th>name</th>
+                                        {/*<th>type</th>*/}
+                                        {/*<th>ctime</th>*/}
+                                        <th>mtime</th>
+                                        <th>size</th>
+                                    </tr>
+                                    </thead>
+                                    <tr>
+                                        <td className="text-justify">
+                                            {this.showParentButton()}
+                                        </td>
+                                    </tr>
+                                    {
+                                        this.state.sharedWithMeData.map((item, index) => {
+                                            return(<SharedWithMe
+                                                key={index}
+                                                item={item}
+                                                accessSharedData = {this.accessSharedData}
+                                                handleStarred = {this.handleStarred}
+                                            />)
+                                        })
+                                    }
+                                </table>
                             </div>
+                            {/*<input type="button" value="Get Directory Data" onClick={()=>this.getDirectoryData()}/>*/}
+                        </div>
+                    </div>
+                </div>
+                <div className="col-lg-2 col-xs-2 col-md-2 col-sm-2 right">
+                    <div className="container-fluid right">
+                        <div className="row">
+                            {this.state.message && ( //Just a change here
+                                <div className="alert alert-info" >
+                                    {this.state.message}
+                                </div>
+                            )}
+                        </div>
+                        <div className="row">
+                            {/*<Modal isOpen={this.state.modalIsOpen} onCancel={this.toggleModal} backdropClosesModal>*/}
+                            {/*<ModalHeader text="Lots of text to show scroll behavior" showCloseButton onClose={this.toggleModal} />*/}
+                            {/*<ModalBody>[...]</ModalBody>*/}
+                            {/*<ModalFooter>*/}
+                            {/*<Button type="primary" onClick={this.toggleModal}>Close modal</Button>*/}
+                            {/*<Button type="link-cancel" onClick={this.toggleModal}>Also closes modal</Button>*/}
+                            {/*</ModalFooter>*/}
+                            {/*</Modal>*/}
+                        </div>
+                        <div className="row">
+                            <form>
+                                <input
+                                    className="fileupload"
+                                    type="file"
+                                    name="mydata"
+                                    multiple="multiple"
+                                    onChange={this.handleFileUpload}
+                                />
+                            </form>
                         </div>
                     </div>
                 </div>

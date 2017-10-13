@@ -44,20 +44,6 @@ class ShowData extends Component{
         }
     });
 
-
-    getShareStatus = ((status) => {
-        if(status){
-            return(
-                <img src={favourite_filled} width="20" height="20" alt="Directory"/>
-            )
-        }
-        else {
-            return(
-                <img src={favourite_empty} width="20" height="20" alt="Directory"/>
-            )
-        }
-    });
-
     render(){
 
         const {item} = this.props;
@@ -68,8 +54,8 @@ class ShowData extends Component{
 
                 <td className="text-justify">
                     <div className="u-table-row">
-                        {this.showItemType(item.type)}
-                        <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}} download/>
+                    {this.showItemType(item.type)}
+                    <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.accessSharedData(item)}}/>
                     </div>
                 </td>
                 <td>
@@ -84,9 +70,6 @@ class ShowData extends Component{
                     </button>
                     <button className="btn btn-link" onClick={()=>{this.props.handleShare(item)}}>
                         <img src={share} alt="share" width="15" height="15"/>
-                    </button>
-                    <button className="btn btn-link" onClick={()=>{this.props.handleStarred(item)}}>
-                        {this.getShareStatus(item.starred)}
                     </button>
                 </td>
             </tr>

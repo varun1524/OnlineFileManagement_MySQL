@@ -13,14 +13,14 @@ router.post('/doSignUp', function(req, res, next){
         console.log(req.body);
         // var input = JSON.parse(JSON.stringify(req.body));
 
-        var data ={
+        let data ={
             firstname : req.body.firstname,
             lastname : req.body.lastname,
             username : req.body.username,
             password : req.body.password
         };
 
-        var fetchUser="select username from users where username = '"+ data.username+"'";
+        let fetchUser="select username from users where username = '"+ data.username+"'";
 
         mysql.fetchData(function (err,results) {
             console.log(results);

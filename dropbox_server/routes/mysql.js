@@ -18,7 +18,47 @@ function insertData (callback,sqlQuery){
 
     console.log("\nSQL Query:: " + sqlQuery);
 
-    var connection = getConnection();
+    let connection = getConnection();
+
+    connection.query(sqlQuery, function(err, result) {
+        if(err){
+            console.log("ERROR: " + err.message);
+        }
+        else
+        {	// return err or result
+            console.log("DB Results:"+result.affectedRows);
+            callback(err, result);
+        }
+    });
+    console.log("\nConnection closed..");
+    connection.end();
+}
+
+function procedure (callback, sqlQuery){
+
+    console.log("\nSQL Query:: " + sqlQuery);
+
+    let connection = getConnection();
+
+    connection.query(sqlQuery, function(err, result) {
+        if(err){
+            console.log("ERROR: " + err.message);
+        }
+        else
+        {	// return err or result
+            console.log("DB Results:"+result.affectedRows);
+            callback(err, result);
+        }
+    });
+    console.log("\nConnection closed..");
+    connection.end();
+}
+
+function updateData (callback,sqlQuery){
+
+    console.log("\nSQL Query:: " + sqlQuery);
+
+    let connection = getConnection();
 
     connection.query(sqlQuery, function(err, result) {
         if(err){
@@ -56,3 +96,5 @@ function fetchData(callback,sqlQuery){
 
 exports.fetchData=fetchData;
 exports.insertData=insertData;
+exports.procedure=procedure;
+exports.updateData=updateData;

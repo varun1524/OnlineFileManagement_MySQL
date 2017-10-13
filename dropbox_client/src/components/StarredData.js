@@ -6,7 +6,7 @@ import directoryIcon from "../images/directory.png";
 import fileIcon from "../images/file.png";
 import share from "../images/share.png"
 
-class ShowData extends Component{
+class StarredData extends Component{
 
     constructor(){
         super();
@@ -14,23 +14,6 @@ class ShowData extends Component{
             hover: false,
         };
     }
-
-    toggleHover = (()=>{
-        if (this.state.hover) {
-            // alert("Red");
-        } else {
-            // alert("Blue");
-        }
-        this.setState({hover: !this.state.hover})
-    });
-
-    handleMouseHover = (()=>{
-        if (this.state.hover) {
-            alert("Red");
-        } else {
-            alert("Blue");
-        }
-    });
 
     showItemType = ((type) => {
         if(type === "d"){
@@ -43,7 +26,6 @@ class ShowData extends Component{
             return (<img src={fileIcon} width="20" height="20" alt="Directory"/>);
         }
     });
-
 
     getShareStatus = ((status) => {
         if(status){
@@ -68,8 +50,8 @@ class ShowData extends Component{
 
                 <td className="text-justify">
                     <div className="u-table-row">
-                        {this.showItemType(item.type)}
-                        <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}} download/>
+                    {this.showItemType(item.type)}
+                    <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}}/>
                     </div>
                 </td>
                 <td>
@@ -79,12 +61,12 @@ class ShowData extends Component{
                     { item.size }
                 </td>
                 <td >
-                    <button className="btn btn-link" onClick={()=>{this.props.handleDelete(item)}}>
-                        <img src={Delete} alt="delete" width="15" height="15"/>
-                    </button>
-                    <button className="btn btn-link" onClick={()=>{this.props.handleShare(item)}}>
-                        <img src={share} alt="share" width="15" height="15"/>
-                    </button>
+                    {/*<button className="btn btn-link" onClick={()=>{this.props.handleDelete(item)}}>*/}
+                        {/*<img src={Delete} alt="delete" width="15" height="15"/>*/}
+                    {/*</button>*/}
+                    {/*<button className="btn btn-link" onClick={()=>{this.props.handleShare(item)}}>*/}
+                        {/*<img src={share} alt="share" width="15" height="15"/>*/}
+                    {/*</button>*/}
                     <button className="btn btn-link" onClick={()=>{this.props.handleStarred(item)}}>
                         {this.getShareStatus(item.starred)}
                     </button>
@@ -96,4 +78,4 @@ class ShowData extends Component{
 }
 
 
-export default ShowData;
+export default StarredData;
