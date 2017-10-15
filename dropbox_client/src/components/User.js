@@ -2,8 +2,6 @@ import React, {Component} from 'react';
 import dropboxLogo from '../images/dropbox.png'
 import * as API from '../api/API';
 import { Route, withRouter, Switch } from 'react-router-dom';
-// import '../../node_modules/elemental/less/elemental.less';
-// import { Button, Alert, Spinner, Modal, ModalBody, ModalFooter, ModalHeader } from 'elemental'
 import Home from './Home';
 import File from './File';
 

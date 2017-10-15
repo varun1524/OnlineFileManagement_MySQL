@@ -1,15 +1,16 @@
-var mysql = require('mysql');
-
-var connection;
+let mysql = require('mysql');
+let connection;
 
 //Put your mysql configuration settings - user, password, database and port
 function getConnection(){
-	connection = mysql.createConnection({
+	connection = mysql.createPool({
+        connectionLimit : 10,
 	    host     : 'localhost',
 	    user     : 'root',
 	    password : 'varun1993',
 	    database : 'dropbox',
-	    port	 : 3306
+	    port	 : 3306,
+        debug    :  false
 	});
 	return connection;
 }
@@ -20,39 +21,42 @@ function insertData (callback,sqlQuery){
 
     let connection = getConnection();
 
-    connection.query(sqlQuery, function(err, result) {
-        if(err){
-            console.log("ERROR: " + err.message);
-        }
-        else
-        {	// return err or result
-            console.log("DB Results:"+result.affectedRows);
-            callback(err, result);
-        }
+    connection.getConnection(function (err, connection){
+        connection.query(sqlQuery, function(err, result) {
+            if(err){
+                console.log("ERROR: " + err.message);
+            }
+            else
+            {	// return err or result
+                console.log("DB Results:"+result.affectedRows);
+                callback(err, result);
+            }
+        });
+        console.log("\nConnection closed..");
+        // connection.end();
+        connection.release();
     });
-    console.log("\nConnection closed..");
-    connection.end();
 }
 
-function procedure (callback, sqlQuery){
-
-    console.log("\nSQL Query:: " + sqlQuery);
-
-    let connection = getConnection();
-
-    connection.query(sqlQuery, function(err, result) {
-        if(err){
-            console.log("ERROR: " + err.message);
-        }
-        else
-        {	// return err or result
-            console.log("DB Results:"+result.affectedRows);
-            callback(err, result);
-        }
-    });
-    console.log("\nConnection closed..");
-    connection.end();
-}
+// function procedure (callback, sqlQuery){
+//
+//     console.log("\nSQL Query:: " + sqlQuery);
+//
+//     let connection = getConnection();
+//
+//     connection.query(sqlQuery, function(err, result) {
+//         if(err){
+//             console.log("ERROR: " + err.message);
+//         }
+//         else
+//         {	// return err or result
+//             console.log("DB Results:"+result.affectedRows);
+//             callback(err, result);
+//         }
+//     });
+//     console.log("\nConnection closed..");
+//     connection.end();
+// }
 
 function updateData (callback,sqlQuery){
 
@@ -60,41 +64,46 @@ function updateData (callback,sqlQuery){
 
     let connection = getConnection();
 
-    connection.query(sqlQuery, function(err, result) {
-        if(err){
-            console.log("ERROR: " + err.message);
-        }
-        else
-        {	// return err or result
-            console.log("DB Results:"+result.affectedRows);
-            callback(err, result);
-        }
+    connection.getConnection(function (err, connection) {
+        connection.query(sqlQuery, function(err, result) {
+            if(err){
+                console.log("ERROR: " + err.message);
+            }
+            else
+            {	// return err or result
+                console.log("DB Results:"+result.affectedRows);
+                callback(err, result);
+            }
+        });
+        console.log("\nConnection closed..");
+        // connection.end();
+        connection.release()
     });
-    console.log("\nConnection closed..");
-    connection.end();
 }
 
 function fetchData(callback,sqlQuery){
 	
 	console.log("\nSQL Query::"+sqlQuery);
+    let connection = getConnection();
+    connection.getConnection(function (err, connection) {
+        connection.query(sqlQuery, function(err, rows) {
+            if(err){
+                console.log("ERROR: " + err.message);
+            }
+            else
+            {	// return err or result
+                console.log("DB Results:"+rows);
+                callback(err, rows);
+            }
+        });
+        console.log("\nConnection closed..");
+        // connection.end();
+        connection.release()
+    });
 
-	let connection=getConnection();
-
-	connection.query(sqlQuery, function(err, rows) {
-		if(err){
-			console.log("ERROR: " + err.message);
-		}
-		else 
-		{	// return err or result
-			console.log("DB Results:"+rows);
-			callback(err, rows);
-		}
-	});
-	console.log("\nConnection closed..");
-	connection.end();
 }	
 
 exports.fetchData=fetchData;
 exports.insertData=insertData;
-exports.procedure=procedure;
+// exports.procedure=procedure;
 exports.updateData=updateData;

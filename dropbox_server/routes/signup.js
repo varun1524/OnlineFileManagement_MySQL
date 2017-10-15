@@ -1,7 +1,11 @@
-var express = require('express');
-var router = express.Router();
-var mysql = require('./mysql');
-var fs = require('fs');
+let express = require('express');
+let router = express.Router();
+let mysql = require('./mysql');
+let fs = require('fs');
+
+let act = require('./activity');
+let bcrypt = require('bcrypt');
+
 
 /* GET Sign Up Page. */
 router.get('/', function(req, res, next) {
@@ -35,7 +39,16 @@ router.post('/doSignUp', function(req, res, next){
                     res.status(301).json({message: "username already exist"})
                 }
                 else{
-                    var insertUser="insert into users (username,firstname,lastname,password) values('"+data.username+"','"+data.firstname+"','"+data.lastname+"','"+data.password+"');";
+
+                    let salt = bcrypt.genSaltSync(10);
+
+                    let hash = bcrypt.hashSync(data.password, salt);
+
+                    console.log(salt);
+                    console.log(hash);
+
+                    let insertUser="insert into users (username,firstname,lastname,hashpassword, salt) " +
+                        "values('"+data.username+"','"+data.firstname+"','"+data.lastname+"','"+hash+"','"+salt+"');";
                     console.log("Insert Query : " + insertUser);
                     //var insertUser="insert into users (username, firstname, lastname, password, address) values('varun@yahoo.com','varun','shah','varun123','1246 alameda')";
 
@@ -49,7 +62,15 @@ router.post('/doSignUp', function(req, res, next){
                             console.log("Affected Rows: "+results.affectedRows);
                             console.log(results);
                             if(results.affectedRows === 1){
-                                console.log("valid Login");
+                                console.log("Sign up successful");
+                                act.insertIntoActivity(function (err, results) {
+                                    if(err){
+                                        console.log(err);
+                                        res.status(301).json({message: "Signup Successful. Failed to add user activity"});
+                                    }
+                                    console.log(results);
+                                },data.username, "signup");
+
                                 res.status(201).json({message: "Signup successful"});
                                 createUserDirectory(data.username);
                             }
@@ -74,7 +95,7 @@ function createUserDirectory(user){
         if(fs.existsSync('./dropboxstorage')){
             let userdirpath="./dropboxstorage/" + user;
             console.log(userdirpath);
-            let userPath = fs.mkdirSync(userdirpath);
+            let userPath = fs.mkdir(userdirpath);
             console.log(userPath);
         }
         else{
@@ -85,5 +106,7 @@ function createUserDirectory(user){
         throw e;
     }
 }
+
+
 
 module.exports = router;

@@ -89,7 +89,7 @@ class Home extends Component {
                 ...this.state,
                 sharedWithMePath : tempPath
             });
-            // this.fetchSelectedDataSharedWithUser();
+            this.fetchDataSharedWithUser();
         }
         else {
             console.log("Already in Root Directory");
@@ -573,17 +573,6 @@ class Home extends Component {
                             {/*<Button type="link-cancel" onClick={this.toggleModal}>Also closes modal</Button>*/}
                             {/*</ModalFooter>*/}
                             {/*</Modal>*/}
-                        </div>
-                        <div className="row">
-                            <form>
-                                <input
-                                    className="fileupload"
-                                    type="file"
-                                    name="mydata"
-                                    multiple="multiple"
-                                    onChange={this.handleFileUpload}
-                                />
-                            </form>
                         </div>
                     </div>
                 </div>

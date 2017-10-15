@@ -536,7 +536,6 @@ class File extends Component {
                             {/*<Button type="link-cancel" onClick={this.toggleModal}>Also closes modal</Button>*/}
                             {/*</ModalFooter>*/}
                             {/*</Modal>*/}
-
                         </div>
                         <div className="row">
                             <form>

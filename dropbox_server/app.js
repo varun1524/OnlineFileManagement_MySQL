@@ -9,6 +9,7 @@ var index = require('./routes/index');
 var users = require('./routes/users');
 var login = require('./routes/login');
 var signup = require('./routes/signup');
+let activity = require('./routes/activity');
 // var expressSession = require("express-session");
 var session = require("client-sessions");
 
@@ -57,12 +58,13 @@ app.use('/', index);
 app.use('/users', users);
 app.use('/login', login);
 app.use('/signup', signup);
+// app.use('/activity', activity);
 
 // app.post('/users/doLogin',users.doLogin);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  var err = new Error('Not Found');
+  let err = new Error('Not Found');
   err.status = 404;
   next(err);
 });

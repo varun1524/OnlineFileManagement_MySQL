@@ -50,22 +50,22 @@ class StarredData extends Component{
 
                 <td className="text-justify">
                     <div className="u-table-row">
-                    {this.showItemType(item.type)}
-                    <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}}/>
+                        {this.showItemType(item.type)}
+                        <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}}/>
                     </div>
                 </td>
                 <td>
-                    { item.mtime }
+                    { item.ctime }
                 </td>
                 <td>
                     { item.size }
                 </td>
                 <td >
                     {/*<button className="btn btn-link" onClick={()=>{this.props.handleDelete(item)}}>*/}
-                        {/*<img src={Delete} alt="delete" width="15" height="15"/>*/}
+                    {/*<img src={Delete} alt="delete" width="15" height="15"/>*/}
                     {/*</button>*/}
                     {/*<button className="btn btn-link" onClick={()=>{this.props.handleShare(item)}}>*/}
-                        {/*<img src={share} alt="share" width="15" height="15"/>*/}
+                    {/*<img src={share} alt="share" width="15" height="15"/>*/}
                     {/*</button>*/}
                     <button className="btn btn-link" onClick={()=>{this.props.handleStarred(item)}}>
                         {this.getShareStatus(item.starred)}

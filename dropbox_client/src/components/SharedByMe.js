@@ -73,7 +73,7 @@ class SharedByMe extends Component{
                     </div>
                 </td>
                 <td>
-                    { item.mtime }
+                    { item.ctime }
                 </td>
                 <td>
                     { item.size }
@@ -85,9 +85,9 @@ class SharedByMe extends Component{
                     <button className="btn btn-link" onClick={()=>{this.props.handleShare(item)}}>
                         <img src={share} alt="share" width="15" height="15"/>
                     </button>
-                    <button className="btn btn-link" onClick={()=>{this.props.handleStarred(item)}}>
-                        {this.getShareStatus(item.starred)}
-                    </button>
+                    {/*<button className="btn btn-link" onClick={()=>{this.props.handleStarred(item)}}>*/}
+                        {/*{this.getShareStatus(item.starred)}*/}
+                    {/*</button>*/}
                 </td>
             </tr>
             </tbody>

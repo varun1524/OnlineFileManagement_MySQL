@@ -73,7 +73,7 @@ class ShowData extends Component{
                     </div>
                 </td>
                 <td>
-                    { item.mtime }
+                    { item.ctime }
                 </td>
                 <td>
                     { item.size }

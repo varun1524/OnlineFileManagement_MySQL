@@ -1,6 +1,8 @@
 let express = require('express');
 let router = express.Router();
 let mysql = require('./mysql');
+let bcrypt = require('bcrypt');
+let act = require('./activity');
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
@@ -19,8 +21,8 @@ router.post('/doLogin', function(req, res, next){
             password : req.body.password
         };
 
-        let fetchUser="select username from users where username = '"+
-            data.username+"' AND password= '"+data.password+"'";
+        let fetchUser="select hashpassword, salt from users where username = '"+
+            data.username+"'";
 
         mysql.fetchData(function (err,results) {
             console.log(results);
@@ -32,12 +34,29 @@ router.post('/doLogin', function(req, res, next){
             {
                 if(results.length===1){
                     console.log("User Exists");
-                    req.session.username=data.username;
-                    console.log(req.session);
-                    res.status(201).send(req.sessions);
+                    // let hash = bcrypt.hashSync(data.password, results[0].salt);
+                    if(bcrypt.compareSync( data.password, results[0].hashpassword)){
+                        act.insertIntoActivity(function (err, results) {
+                            if(err){
+                                console.log(err);
+                                res.status(203).send({"message":"Error while storing data to activity"});
+                            }
+                            if(results){
+                                req.session.username=data.username;
+                                res.status(201).send(req.sessions);
+                            }
+                            else {
+                                res.status(203).send({"message":"Error while storing data to activity"});
+                            }
+                            console.log(results);
+                        },data.username, "login");
+                    }
+                    else {
+                        res.status(301).send({"message":"Incorrect Password"});
+                    }
                 }
                 else{
-                    res.status(301).json({message: "username or password does not exist"});
+                    res.status(301).json({message: "username does not exist"});
                 }
             }
         }, fetchUser);

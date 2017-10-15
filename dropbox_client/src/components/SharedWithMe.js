@@ -59,15 +59,15 @@ class ShowData extends Component{
                     </div>
                 </td>
                 <td>
-                    { item.mtime }
+                    { item.ctime }
                 </td>
                 <td>
                     { item.size }
                 </td>
                 <td >
-                    <button className="btn btn-link" onClick={()=>{this.props.handleDelete(item)}}>
-                        <img src={Delete} alt="delete" width="15" height="15"/>
-                    </button>
+                    {/*<button className="btn btn-link" onClick={()=>{this.props.handleDelete(item)}}>*/}
+                        {/*<img src={Delete} alt="delete" width="15" height="15"/>*/}
+                    {/*</button>*/}
                     <button className="btn btn-link" onClick={()=>{this.props.handleShare(item)}}>
                         <img src={share} alt="share" width="15" height="15"/>
                     </button>
