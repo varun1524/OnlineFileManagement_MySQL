@@ -119,13 +119,36 @@ class MainPage extends Component {
         this.props.history.push(page);
     });
 
+    doesSessionExist = (()=>{
+        API.getSession().then((response) => {
+           if(response.status === 201){
+               response.json().then((data) => {
+                    this.setState({
+                        ...this.state,
+                        isLoggedIn : true,
+                        username : data.username
+                    })
+               });
+               this.props.history.push("/user/home");
+           }
+           else if(response.status === 203) {
+               this.setState({
+                   ...this.state,
+                   isLoggedIn : false,
+                   username : ""
+               });
+               this.props.history.push("/home/signup");
+           }
+        });
+    });
+
     render(){
         return(
             <div>
                 <Switch>
                     <Route exact path="/" render={() =>(
                         <div>
-                            {this.props.history.push("/home/signup")}
+                            {this.doesSessionExist()}
                         </div>
                     )}/>
 
@@ -140,7 +163,6 @@ class MainPage extends Component {
                                     </div>
                                     <div className="row">
                                         <div className="col-lg-7 col-xs-7 col-md-7 col-sm-7">
-                                            Hello
                                         </div>
                                         <div className="col-lg-5 col-xs-5 col-md-5 col-sm-5">
                                             <Switch>
@@ -175,6 +197,7 @@ class MainPage extends Component {
                                 username={this.state.username}
                                 handleLogout={this.handleLogout}
                                 handlePageChange={this.handlePageChange}
+                                doesSessionExist={this.doesSessionExist}
                             />
                         </div>
                     )}/>

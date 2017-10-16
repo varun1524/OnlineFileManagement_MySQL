@@ -249,8 +249,8 @@ export const accessSharedData = (payload) =>
         return error;
     });
 
-export const fetchSelectedDataSharedWithUser = (payload) =>
-    fetch (`${api}/users/accessSelectedSharedData`,
+export const changeProfile = (payload) =>
+    fetch (`${api}/users/changeProfile`,
         {
             method: 'POST',
             headers: {
@@ -265,6 +265,55 @@ export const fetchSelectedDataSharedWithUser = (payload) =>
         console.log("Error: " + error);
         return error;
     });
+
+export const getprofile = (payload) =>
+    fetch (`${api}/users/getprofile`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+
+export const getActivityData = () =>
+    fetch (`${api}/users/getActivityData`,
+        {
+            method: 'POST',
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+// export const fetchSelectedDataSharedWithUser = (payload) =>
+//     fetch (`${api}/users/accessSelectedSharedData`,
+//         {
+//             method: 'POST',
+//             headers: {
+//                 ...headers,
+//                 'Content-Type': 'application/json'
+//             },
+//             body: JSON.stringify(payload),
+//             credentials: 'include'
+//         }).then(res => {
+//         return res;
+//     }).catch(error => {
+//         console.log("Error: " + error);
+//         return error;
+//     });
+
+
 
 // export const getStarredDirectoryData =
 

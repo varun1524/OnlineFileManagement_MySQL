@@ -3,9 +3,6 @@ import * as API from '../api/API';
 import StarredData from './StarredData';
 import SharedByMe from "./SharedByMe";
 import SharedWithMe from './SharedWithMe';
-// import '../../node_modules/elemental/less/elemental.less';
-// import { Button, Alert, Spinner, Modal, ModalBody, ModalFooter, ModalHeader } from 'elemental'
-import File from './File';
 
 class Home extends Component {
 

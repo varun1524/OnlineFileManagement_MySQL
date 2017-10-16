@@ -14,6 +14,9 @@ class SignUp extends Component{
         };
     }
 
+    componentWillMount(){
+    }
+
     render(){
         return(
             <div className="container-fluid">

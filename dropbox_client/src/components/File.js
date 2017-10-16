@@ -60,16 +60,26 @@ class File extends Component {
                 API.doShareData(data).then((response) => {
                     // console.log(response);
                     if(response.status === 201){
+                        this.setState({
+                            ...this.state,
+                            message : "Shared successfully"
+                        });
                         response.json().then((message) => {
                            console.log(message);
                         });
                     }
                     else if (response.status === 203){
-                        response.json().then((message) => {
-                            console.log(message);
+                        this.setState({
+                            ...this.state,
+                            message : "Session expired. Sending to login screen"
                         });
+                        this.props.handlePageChange("/home/signup");
                     }
                     else if (response.status === 301){
+                        this.setState({
+                            ...this.state,
+                            message : "Error while sharing file"
+                        });
                         response.json().then((message) => {
                             console.log(message);
                         });

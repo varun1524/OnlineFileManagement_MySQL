@@ -9,7 +9,7 @@ var index = require('./routes/index');
 var users = require('./routes/users');
 var login = require('./routes/login');
 var signup = require('./routes/signup');
-let activity = require('./routes/activity');
+let jmetertest = require('./routes/jmetertest');
 // var expressSession = require("express-session");
 var session = require("client-sessions");
 
@@ -58,6 +58,7 @@ app.use('/', index);
 app.use('/users', users);
 app.use('/login', login);
 app.use('/signup', signup);
+app.use('/jmetertest', jmetertest);
 // app.use('/activity', activity);
 
 // app.post('/users/doLogin',users.doLogin);

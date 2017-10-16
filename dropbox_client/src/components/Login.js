@@ -15,6 +15,8 @@ class Login extends Component{
             username:"",
             password:""
         });
+
+        // this.props.doesSessionExist("");
     }
 
     render(){

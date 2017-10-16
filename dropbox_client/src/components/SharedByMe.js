@@ -1,7 +1,4 @@
 import React, {Component} from 'react';
-import favourite_empty from "../images/favourite_empty.png"
-import favourite_filled from "../images/favourite_filled.png";
-import Delete from "../images/Delete.png";
 import directoryIcon from "../images/directory.png";
 import fileIcon from "../images/file.png";
 import share from "../images/share.png"
@@ -15,22 +12,6 @@ class SharedByMe extends Component{
         };
     }
 
-    toggleHover = (()=>{
-        if (this.state.hover) {
-            // alert("Red");
-        } else {
-            // alert("Blue");
-        }
-        this.setState({hover: !this.state.hover})
-    });
-
-    handleMouseHover = (()=>{
-        if (this.state.hover) {
-            alert("Red");
-        } else {
-            alert("Blue");
-        }
-    });
 
     showItemType = ((type) => {
         if(type === "d"){
@@ -44,19 +25,6 @@ class SharedByMe extends Component{
         }
     });
 
-
-    getShareStatus = ((status) => {
-        if(status){
-            return(
-                <img src={favourite_filled} width="20" height="20" alt="Directory"/>
-            )
-        }
-        else {
-            return(
-                <img src={favourite_empty} width="20" height="20" alt="Directory"/>
-            )
-        }
-    });
 
     render(){
 

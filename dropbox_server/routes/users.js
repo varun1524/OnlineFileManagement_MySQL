@@ -9,49 +9,49 @@ let fs = require('fs');
 let filePath="";
 
 let storage = multer.diskStorage({
-        destination: function (req, file, cb) {
-            console.log(filePath);
-            if(req.session.username!==undefined) {
-                cb(null, "./dropboxstorage/" + req.session.username + "/" + filePath);
-            }
-            else{
-                res.status(203).send({"message" : "Session Expired. Login Again"});
-            }
-        },
-        filename: function (req, file, cb) {
-            let dirpath = "./dropboxstorage/" + req.session.username + "/" + filePath;
-            let filename=file.originalname;
-            console.log("IMP");
-            doesExist(function (err, result) {
-                console.log("Does Exist: "+result);
-                if(!result){
-                    let username = req.session.username;
-                    if(insertIntoStorage(function (err, result) {
-                            if(err){
+    destination: function (req, file, cb) {
+        console.log(filePath);
+        if(req.session.username!==undefined) {
+            cb(null, "./dropboxstorage/" + req.session.username + "/" + filePath);
+        }
+        else{
+            res.status(203).send({"message" : "Session Expired. Login Again"});
+        }
+    },
+    filename: function (req, file, cb) {
+        let dirpath = "./dropboxstorage/" + req.session.username + "/" + filePath;
+        let filename=file.originalname;
+        console.log("IMP");
+        doesExist(function (err, result) {
+            console.log("Does Exist: "+result);
+            if(!result){
+                let username = req.session.username;
+                if(insertIntoStorage(function (err, result) {
+                        if(err){
 
-                            }
-                            if(result){
-                                console.log("File added in file system as well as database");
-                                cb(null, filename) ;
-                                deleteIfNotAvailableInStore(filename, dirpath);
-                            }
-                            else {
-                                console.log("Failed to add file into database");
-                            }
-                        } ,file.originalname, dirpath, "f", username)){
-                        console.log("Successfully added "+file.originalname +" into database");
-                    }
-                    else {
-                        console.log("Failed to add "+file.originalname +" into database");
-                    }
+                        }
+                        if(result){
+                            console.log("File added in file system as well as database");
+                            cb(null, filename) ;
+                            deleteIfNotAvailableInStore(filename, dirpath);
+                        }
+                        else {
+                            console.log("Failed to add file into database");
+                        }
+                    } ,file.originalname, dirpath, "f", username)){
+                    console.log("Successfully added "+file.originalname +" into database");
                 }
                 else {
-                    console.log("File already exists in database");
+                    console.log("Failed to add "+file.originalname +" into database");
                 }
-            }, filename, dirpath, Date.toLocaleString());
+            }
+            else {
+                console.log("File already exists in database");
+            }
+        }, filename, dirpath, Date.toLocaleString());
 
-        }
-    });
+    }
+});
 
 let upload = multer({storage:storage}).any();
 
@@ -237,6 +237,10 @@ router.post('/share', function (req, res, next) {
                                                         if(err){
                                                             console.log(err);
                                                         }
+                                                        if (message.length===recUserArr.length) {
+                                                            console.log(message);
+                                                            res.status(201).send(message);
+                                                        }
                                                         console.log("Activity added : "+results2)
                                                     }, username, "share", itemid);
                                                     console.log("Shared status updated to true successfully in dropboxstorage");
@@ -255,11 +259,9 @@ router.post('/share', function (req, res, next) {
                                 }
                             },fetchQuery1);
                         }
+                        console.log(message.length);
+                        console.log(recUserArr.length);
 
-                        if (message.length===recUserArr.length) {
-                            console.log(message);
-                            res.status(201).send(message);
-                        }
 
                     }, fetchQuery);
                 }
@@ -908,6 +910,138 @@ router.post('/upload', function (req, res, next) {
     catch (e){
         console.log(e);
         res.status(301).end();
+    }
+});
+
+router.post('/getActivityData', function (req, res, next) {
+    try {
+        console.log("In fetching activity");
+        if(req.session.username!==null || req.session.username!==undefined) {
+            let username = req.session.username;
+
+            let jsonObj = [];
+
+            let fetchQuery="select * from useractivities where username = '" + username+"'" +
+                "ORDER BY useractivityid DESC LIMIT 5";
+            console.log("fetch Query : " + fetchQuery);
+
+            mysql.fetchData(function(err,results){
+                console.log(results);
+                if(err){
+                    console.log(err);
+                    throw err;
+                }
+                else
+                {
+                    if(results.length>0) {
+                        for (i = 0; i < results.length; i++) {
+                            let tempObj = {};
+                            console.log(results[i].path);
+                            tempObj["activitytype"] = results[i].activitytype;
+                            tempObj["activitytime"] = results[i].activitytime;
+                            jsonObj.push(tempObj);
+                        }
+
+                        fetchQuery="select * from storageactivities where username = '" + username+"'" +
+                            "ORDER BY activityid DESC LIMIT 5";
+                        console.log(fetchQuery);
+                        mysql.fetchData(function(err,results1) {
+                            console.log(results1);
+                            if (err) {
+                                throw err;
+                            }
+                            else {
+                                if (results.length > 0) {
+                                    for (i = 0; i < results1.length; i++) {
+                                        let tempObj = {};
+                                        // console.log(results[i].path);
+                                        tempObj["activitytype"] = results1[i].activitytype;
+                                        tempObj["activitytime"] = results1[i].activitytime;
+                                        jsonObj.push(tempObj);
+                                    }
+                                    console.log("sds");
+                                    console.log(jsonObj);
+                                    res.status(201).send(jsonObj);
+                                }
+                                else if(results.length === 0){
+                                    res.status(201).send(jsonObj);
+                                }
+                            }
+                        },fetchQuery);
+                    }
+                    else {
+                        res.status(301).send({"message":"Unrecognized Error. No activity found"});
+                    }
+                }
+            },fetchQuery);
+        }
+        else{
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
+        }
+    }
+    catch (e){
+        console.log(e);
+        res.status(301).send({"message" : "Error while fetching activity data"});
+    }
+});
+
+router.post('/changeProfile', function (req, res, next) {
+    try {
+        console.log("In fetching activity");
+        if(req.session.username!==null || req.session.username!==undefined) {
+            let username = req.session.username;
+            let data = req.body;
+            console.log(data);
+            insertQuery="insert into userprofile (overview, education, contactinfo, lifeevents, username) " +
+                "values('" + data.overview+ "','" + data.education + "','" + data.contact + "','" + data.lifeevent
+                + "','" + username + "');";
+            console.log(fetchQuery);
+            mysql.insertData(function(err,results1) {
+                console.log(results1);
+                if (err) {
+                    throw err;
+                }
+                if (results.length === 1) {
+                    res.status(201).send({"message":"Profile updated successfully"});
+                }
+            },insertQuery);
+        }
+        else{
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
+        }
+    }
+    catch (e){
+        console.log(e);
+        res.status(301).send({"message" : "Error while fetching activity data"});
+    }
+});
+
+router.get('/getprofile', function (req, res, next) {
+    try {
+        console.log("In fetching activity");
+        if(req.session.username!==null || req.session.username!==undefined) {
+            let username = req.session.username;
+            let data = req.body;
+            console.log(data);
+            fetchQuery="select * from userprofile where username = "+ username +"';";
+            console.log(fetchQuery);
+            mysql.fetchData(function(err,results1) {
+                console.log(results1);
+                if (err) {
+                    throw err;
+                }
+                if (results.length === 1) {
+                    res.status(201).send(results1);
+                }
+            },fetchQuery);
+        }
+        else{
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
+        }
+    }
+    catch (e){
+        console.log(e);
+        res.status(301).send({"message" : "Error while fetching activity data"});
     }
 });
 
