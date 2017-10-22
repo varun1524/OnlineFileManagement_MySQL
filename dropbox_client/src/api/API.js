@@ -93,7 +93,6 @@ export const uploadFile = (payload) =>
         return error;
     });
 
-
 export const createDirectory = (payload) =>
     fetch(`${api}/users/createDir`, {
         method: 'POST',
