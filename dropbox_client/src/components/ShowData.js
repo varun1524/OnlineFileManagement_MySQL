@@ -15,23 +15,6 @@ class ShowData extends Component{
         };
     }
 
-    toggleHover = (()=>{
-        if (this.state.hover) {
-            // alert("Red");
-        } else {
-            // alert("Blue");
-        }
-        this.setState({hover: !this.state.hover})
-    });
-
-    handleMouseHover = (()=>{
-        if (this.state.hover) {
-            alert("Red");
-        } else {
-            alert("Blue");
-        }
-    });
-
     showItemType = ((type) => {
         if(type === "d"){
             // return "Directory";
@@ -69,7 +52,8 @@ class ShowData extends Component{
                 <td className="text-justify">
                     <div className="u-table-row">
                         {this.showItemType(item.type)}
-                        <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}} download/>
+                        <input type="button" value={ item.name.substr(0, 20) } className="btn-link"
+                               onClick={()=>{this.props.fetchSelectedDirectoryData(item)}}/>
                     </div>
                 </td>
                 <td>

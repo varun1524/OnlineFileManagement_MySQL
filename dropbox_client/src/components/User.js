@@ -6,6 +6,8 @@ import Home from './Home';
 import File from './File';
 import Profile from './Profile';
 import Activity from './Activity';
+import EditProfile from './EditProfile';
+import Group from './Group';
 
 class User extends Component {
 
@@ -24,8 +26,70 @@ class User extends Component {
         this.props.history.push("/user/file");
     });
 
+    handleShare = ((item)=>{
+        let sharingData = prompt("Please enter email id of users separated by semicolon ';' ");
+        if (sharingData === null) {
+            console.log("User cancelled the prompt.");
+        }
+        else {
+            sharingData = sharingData.trim();
+            if(sharingData === "")
+            {
+                console.log("User cancelled the prompt.");
+            }
+            else {
+                let sharingIds;
+                sharingIds = sharingData.split(";");
+                let data = {
+                    userdata:[],
+                    itemid: item.id
+                };
+                sharingIds.every((id) => {
+                    // let temp = {};
+                    if (id === "") {
+                        sharingIds.splice(sharingIds.indexOf(id), 1);
+                        return id;
+                    }
+                    // temp["username"] = id;
+                    data.userdata.push(id);
+                    return id;
+                });
+                console.log(data);
+                API.doShareData(data).then((response) => {
+                    // console.log(response);
+                    if(response.status === 201){
+                        this.setState({
+                            ...this.state,
+                            message : "Shared successfully"
+                        });
+                        response.json().then((message) => {
+                            console.log(message);
+                        });
+                    }
+                    else if (response.status === 203){
+                        this.setState({
+                            ...this.state,
+                            message : "Session expired. Sending to login screen"
+                        });
+                        this.props.handlePageChange("/home/signup");
+                    }
+                    else if (response.status === 301){
+                        this.setState({
+                            ...this.state,
+                            message : "Error while sharing file"
+                        });
+                        response.json().then((message) => {
+                            console.log(message);
+                        });
+                    }
+                });
+            }
+        }
+        // }
+    });
 
     componentWillMount(){
+        console.log(this.state);
         API.getSession().then((response)=>{
             if(response.status===201){
                 console.log("session active");
@@ -40,7 +104,7 @@ class User extends Component {
     }
 
     componentDidMount(){
-        console.log("did");
+        console.log(this.state.recprofiledata);
     }
 
     componentDidUpdate(){
@@ -78,7 +142,7 @@ class User extends Component {
                             <div align="left">
                                 <div>
                                     {/*<button className="btn btn-link" onClick={(()=>{this.props.handlePageChange("/user/home")})}>*/}
-                                        <img src={dropboxLogo} width="50" height="50" alt="DropBox" align="left"/>
+                                    <img src={dropboxLogo} width="50" height="50" alt="DropBox" align="left"/>
                                     {/*</button>*/}
                                 </div>
                             </div>
@@ -91,7 +155,7 @@ class User extends Component {
                                     <div id="userDropdown" className="dropdown-content">
                                         <a className="btn btn-link" onClick={(()=>{this.props.handlePageChange("/user/profile")})}>Profile</a>
                                         <a className="btn btn-link" onClick={(()=>{this.props.handlePageChange("/user/activity")})}>
-                                            activity
+                                            Activity
                                         </a>
                                         <a className="btn btn-link" onClick={(()=>{this.props.handleLogout()})}>
                                             Logout
@@ -139,6 +203,7 @@ class User extends Component {
                                                 username={this.props.username}
                                                 handlePageChange={this.props.handlePageChange}
                                                 redirectToFile = {this.redirectToFile}
+                                                handleShare = {this.handleShare}
                                             />
                                         </div>
                                     )}/>
@@ -148,12 +213,31 @@ class User extends Component {
                                                 path = {this.state.path}
                                                 username={this.props.username}
                                                 handlePageChange={this.props.handlePageChange}
+                                                handleShare = {this.handleShare}
+                                            />
+                                        </div>
+                                    )}/>
+                                    <Route path="/user/groups" render={() => (
+                                        <div>
+                                            <Group
+                                                username={this.props.username}
+                                                handlePageChange={this.props.handlePageChange}
+                                                redirectToFile = {this.redirectToFile}
+                                                handleShare = {this.handleShare}
                                             />
                                         </div>
                                     )}/>
                                     <Route path="/user/profile" render={() => (
                                         <div>
                                             <Profile
+                                                username={this.props.username}
+                                                handlePageChange={this.props.handlePageChange}
+                                            />
+                                        </div>
+                                    )}/>
+                                    <Route path="/user/editprofile" render={() => (
+                                        <div>
+                                            <EditProfile
                                                 username={this.props.username}
                                                 handlePageChange={this.props.handlePageChange}
                                             />

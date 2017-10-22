@@ -5,6 +5,7 @@ let mysql = require('./mysql');
 // let glob = require('glob');
 let act = require('./activity');
 let fs = require('fs');
+let shell = require('shelljs');
 // let fse = require('fs-extra');
 let filePath="";
 
@@ -60,7 +61,7 @@ router.post('/getDirData', function (req, res, next) {
     try {
         console.log(req.session.username);
         if(req.session.username!==null || req.session.username!==undefined) {
-            console.log("hello");
+            console.log("In get dir data");
             console.log(req.body.path);
             let clientPath = req.body.path;
             let dirpath;
@@ -72,8 +73,8 @@ router.post('/getDirData', function (req, res, next) {
             }
             console.log(dirpath);
 
-            let files = fs.readdirSync(dirpath);
-            console.log(files);
+            // let files = fs.readdirSync(dirpath);
+            // console.log(files);
             let jsonObj = [];
             let i = 0;
             dirpath=dirpath.replace("//","/");
@@ -96,6 +97,7 @@ router.post('/getDirData', function (req, res, next) {
                             tempObj["type"] = results[i].type;
                             tempObj["ctime"] = results[i].creationtime;
                             // tempObj["mtime"] = results[i].modifiedtime;
+                            tempObj["path"] = results[i].path;
                             tempObj["size"] = results[i].size;
                             tempObj["starred"] = results[i].starred;
                             tempObj["sharedstatus"] = results[i].sharedstatus;
@@ -329,7 +331,6 @@ router.post('/getStarredData', function (req, res, next) {
     try {
         console.log(req.session.username);
         if(req.session.username!==null || req.session.username!==undefined) {
-            console.log("hello");
             let clientPath = req.body.path;
             let dirpath;
             if (clientPath === "" || clientPath === null || clientPath === undefined || clientPath === "/") {
@@ -426,7 +427,7 @@ router.post('/getStarredData', function (req, res, next) {
                             tempObj["name"] = results[i].name;
                             tempObj["path"] = results[i].path;
                             tempObj["type"] = results[i].type;
-                            tempObj["mtime"] = results[i].modifiedtime;
+                            tempObj["ctime"] = results[i].creationtime;
                             tempObj["size"] = results[i].size;
                             tempObj["starred"] = results[i].starred;
                             tempObj["sharedstatus"] = results[i].sharedstatus;
@@ -458,7 +459,6 @@ router.post('/getDataSharedByUser', function (req, res, next) {
     try {
         console.log(req.session.username);
         if(req.session.username!==null || req.session.username!==undefined) {
-            console.log("hello");
             let clientPath = req.body.path;
             let dirpath;
             if (clientPath === "" || clientPath === null || clientPath === undefined || clientPath === "/") {
@@ -555,7 +555,7 @@ router.post('/getDataSharedByUser', function (req, res, next) {
                             tempObj["name"] = results[i].name;
                             tempObj["path"] = results[i].path;
                             tempObj["type"] = results[i].type;
-                            tempObj["mtime"] = results[i].modifiedtime;
+                            tempObj["ctime"] = results[i].creationtime;
                             tempObj["size"] = results[i].size;
                             tempObj["starred"] = results[i].starred;
                             tempObj["sharedstatus"] = results[i].sharedstatus;
@@ -588,7 +588,6 @@ router.post('/fetchDataSharedWithUser', function (req, res, next) {
         console.log(req.session.username);
         if(req.session.username!==null || req.session.username!==undefined) {
             let username = req.session.username;
-            console.log("hello");
             let clientPath = req.body.path;
             // let dirpath;
             // if (clientPath === "" || clientPath === null || clientPath === undefined || clientPath === "/") {
@@ -694,7 +693,7 @@ router.post('/fetchDataSharedWithUser', function (req, res, next) {
                                         tempObj["name"] = results1[j].name;
                                         tempObj["path"] = results1[j].path;
                                         tempObj["type"] = results1[j].type;
-                                        tempObj["mtime"] = results1[j].modifiedtime;
+                                        tempObj["ctime"] = results1[j].creationtime;
                                         tempObj["size"] = results1[j].size;
                                         tempObj["starred"] = results[j].starred;
                                         tempObj["sharedstatus"] = results1[j].sharedstatus;
@@ -734,7 +733,6 @@ router.post('/accessSelectedSharedData', function (req, res, next) {
         console.log(req.session.username);
         if(req.session.username!==null || req.session.username!==undefined) {
             let username = req.session.username;
-            console.log("hello");
             let clientPath = req.body.path;
 
             // dirpath=dirpath.replace("//","/");
@@ -805,7 +803,6 @@ router.post('/accessSharedData', function (req, res, next) {
         console.log(req.session.username);
         if(req.session.username!==null || req.session.username!==undefined) {
             let username = req.session.username;
-            console.log("hello");
             console.log(req.body.item);
             let item = req.body.item;
             path=item.path + item.name + "/";
@@ -921,57 +918,91 @@ router.post('/getActivityData', function (req, res, next) {
 
             let jsonObj = [];
 
-            let fetchQuery="select * from useractivities where username = '" + username+"'" +
-                "ORDER BY useractivityid DESC LIMIT 5";
-            console.log("fetch Query : " + fetchQuery);
-
-            mysql.fetchData(function(err,results){
-                console.log(results);
+            let fetchQuery="select * from useractivities where username = '" + username+"' AND activitytype='signup'";
+            mysql.fetchData(function (err, result) {
                 if(err){
-                    console.log(err);
-                    throw err;
+                    console.log("Error while fetting account creation data");
                 }
-                else
-                {
-                    if(results.length>0) {
-                        for (i = 0; i < results.length; i++) {
-                            let tempObj = {};
-                            console.log(results[i].path);
-                            tempObj["activitytype"] = results[i].activitytype;
-                            tempObj["activitytime"] = results[i].activitytime;
-                            jsonObj.push(tempObj);
-                        }
+                if(result.length===1) {
+                    let tempObj={};
+                    tempObj["activitytype"] = result[0].activitytype;
+                    tempObj["activitytime"] = result[0].activitytime;
+                    tempObj["username"] = result[0].username;
+                    jsonObj.push(tempObj);
 
-                        fetchQuery="select * from storageactivities where username = '" + username+"'" +
-                            "ORDER BY activityid DESC LIMIT 5";
-                        console.log(fetchQuery);
-                        mysql.fetchData(function(err,results1) {
-                            console.log(results1);
-                            if (err) {
-                                throw err;
+                    fetchQuery="select * from useractivities where username = '" + username+"' AND activitytype!='signup'" +
+                        " ORDER BY useractivityid DESC LIMIT 1";
+                    console.log("fetch Query : " + fetchQuery);
+
+                    mysql.fetchData(function(err,results){
+                        console.log(results);
+                        if(err){
+                            console.log(err);
+                            throw err;
+                        }
+                        else
+                        {
+                            if(results.length>0) {
+                                for (i = 0; i < results.length; i++) {
+                                    let tempObj = {};
+                                    console.log(results[i].path);
+                                    tempObj["activitytype"] = results[i].activitytype;
+                                    tempObj["activitytime"] = results[i].activitytime;
+                                    jsonObj.push(tempObj);
+                                }
+
+
+                                fetchQuery="select * from storageactivities where username = '" + username+"'" +
+                                    " ORDER BY activityid DESC LIMIT 5";
+                                console.log(fetchQuery);
+                                mysql.fetchData(function(err,results1) {
+                                    console.log(results1);
+                                    if (err) {
+                                        throw err;
+                                    }
+                                    if (results1.length > 0) {
+                                        let count=0;
+                                        for (i = 0; i < results1.length; i++) {
+                                            let tempObj = {};
+                                            tempObj["activitytype"] = results1[i].activitytype;
+                                            tempObj["activitytime"] = results1[i].activitytime;
+
+                                            let fetchquery1="select name, type from dropboxstorage where id = '"+
+                                                results1[i].itemid +"';";
+                                            console.log(fetchquery1);
+                                            mysql.fetchData(function (err, results2) {
+                                                console.log("results2:");
+                                                console.log(results2);
+                                                if(err){
+                                                    console.log(err);
+                                                    throw "Error while fetching file/folder name";
+                                                }
+                                                if(results2.length===1){
+                                                    tempObj["name"] = results2[0].name;
+                                                    tempObj["type"] = results2[0].type;
+                                                    jsonObj.push(tempObj);
+                                                    count++;
+                                                    console.log("i:"+i);
+                                                    if(count===results1.length) {
+                                                        console.log(i+"m here"+results1.length);
+                                                        res.status(201).send(jsonObj);
+                                                    }
+                                                }
+                                            }, fetchquery1);
+                                        }
+                                        console.log(jsonObj);
+                                    }
+                                    else if(results1.length === 0){
+                                        console.log("here");
+                                        res.status(201).send(jsonObj);
+                                    }
+                                },fetchQuery);
                             }
                             else {
-                                if (results.length > 0) {
-                                    for (i = 0; i < results1.length; i++) {
-                                        let tempObj = {};
-                                        // console.log(results[i].path);
-                                        tempObj["activitytype"] = results1[i].activitytype;
-                                        tempObj["activitytime"] = results1[i].activitytime;
-                                        jsonObj.push(tempObj);
-                                    }
-                                    console.log("sds");
-                                    console.log(jsonObj);
-                                    res.status(201).send(jsonObj);
-                                }
-                                else if(results.length === 0){
-                                    res.status(201).send(jsonObj);
-                                }
+                                res.status(301).send({"message":"Unrecognized Error. No activity found"});
                             }
-                        },fetchQuery);
-                    }
-                    else {
-                        res.status(301).send({"message":"Unrecognized Error. No activity found"});
-                    }
+                        }
+                    },fetchQuery);
                 }
             },fetchQuery);
         }
@@ -987,24 +1018,33 @@ router.post('/getActivityData', function (req, res, next) {
 
 router.post('/changeProfile', function (req, res, next) {
     try {
-        console.log("In fetching activity");
         if(req.session.username!==null || req.session.username!==undefined) {
             let username = req.session.username;
+            console.log(username);
             let data = req.body;
             console.log(data);
-            insertQuery="insert into userprofile (overview, education, contactinfo, lifeevents, username) " +
-                "values('" + data.overview+ "','" + data.education + "','" + data.contact + "','" + data.lifeevent
-                + "','" + username + "');";
-            console.log(fetchQuery);
-            mysql.insertData(function(err,results1) {
-                console.log(results1);
+            updateQuery="update userprofile " +
+                "set overview='"+ data.overview + "'," +
+                " education= '"+ data.education + "'," +
+                " contactinfo= '"+ data.contactinfo + "'," +
+                " lifeevents= '"+ data.lifeevent + "'," +
+                " work= '"+ data.work + "'," +
+                " music= "+ data.music + "," +
+                " reading= "+ data.reading+ "," +
+                " sports= "+ data.sports +
+                " where username = '"+username+"';";
+
+
+            console.log(updateQuery);
+            mysql.updateData(function(err,results) {
+                console.log(results);
                 if (err) {
                     throw err;
                 }
-                if (results.length === 1) {
+                if (results.affectedRows === 1) {
                     res.status(201).send({"message":"Profile updated successfully"});
                 }
-            },insertQuery);
+            },updateQuery);
         }
         else{
             res.status(203).send({"message":"Session Expired. Please Login Again"});
@@ -1023,14 +1063,14 @@ router.get('/getprofile', function (req, res, next) {
             let username = req.session.username;
             let data = req.body;
             console.log(data);
-            fetchQuery="select * from userprofile where username = "+ username +"';";
+            fetchQuery="select * from userprofile where username = '"+ username +"';";
             console.log(fetchQuery);
             mysql.fetchData(function(err,results1) {
                 console.log(results1);
                 if (err) {
                     throw err;
                 }
-                if (results.length === 1) {
+                if (results1.length === 1) {
                     res.status(201).send(results1);
                 }
             },fetchQuery);
@@ -1044,6 +1084,94 @@ router.get('/getprofile', function (req, res, next) {
         res.status(301).send({"message" : "Error while fetching activity data"});
     }
 });
+
+router.post('/deleteContent', function (req, res, next) {
+    try {
+        console.log(req.session.username);
+        if(req.session.username!==null || req.session.username!==undefined) {
+            let username = req.session.username;
+            console.log(req.body);
+            let item = req.body.id;
+            let fetchQuery = "select type, name, path from dropboxstorage where id = '"+ item + "' " +
+                "AND ownerusername = '"+ username +"';";
+
+            mysql.fetchData(function(err,results){
+                console.log(results);
+                if(err){
+                    console.log(err);
+                    throw err;
+                }
+                    if(results.length===1) {
+                        let deleteQuery="delete from dropboxstorage where path LIKE '"+ results[0].path+"%' AND " +
+                            "id = '"+ item +"' "+
+                            "AND ownerusername= '"+ username +"';";
+                        // act.insertIntoActivity(function (err, dataInserted) {
+                        //     if(dataInserted){
+                        //         console.log("Added to Activity");
+                        //     }
+                        //     else{
+                        //         console.log("Failed to add Activity");
+                        //     }
+                        // }, username, "delete", item);
+                        mysql.deleteData(function (err, results1) {
+                            console.log(results1);
+                            if(err){
+                                console.log(err);
+                                throw err;
+                            }
+                            if(results1.affectedRows>0){
+                                if(results[0].type==="d") {
+                                    let deleteQuery = "delete from dropboxstorage where path LIKE '" +
+                                        results[0].path + results[0].name + "%'" +
+                                        "AND ownerusername= '" + username + "';";
+                                    mysql.deleteData(function (err, results2) {
+                                        console.log("Content Deleted Successfully");
+                                        if (results2.affectedRows >= 0) {
+                                            deleteFromFileSystem(function (err, deleteResult) {
+                                                if (deleteResult) {
+                                                    res.status(201).send({"message": "Deleted Successfully"});
+                                                }
+                                                else {
+                                                    res.status(301).send({"message": "Deleted Unsuccessful"})
+                                                }
+                                            }, results[0].name, results[0].path);
+                                        }
+                                        else {
+                                            console.log("Failed to Remove");
+                                        }
+                                    }, deleteQuery);
+                                }
+                                else if(results[0].type==="f"){
+                                    deleteFromFileSystem(function (err, deleteResult) {
+                                        if (deleteResult) {
+                                            res.status(201).send({"message": "Deleted Successfully"});
+                                        }
+                                        else {
+                                            res.status(301).send({"message": "Deleted Unsuccessful"})
+                                        }
+                                    }, results[0].name, results[0].path);
+                                }
+                            }
+                            else {
+                                console.log("Error while deletion");
+                            }
+                        }, deleteQuery);
+                    }
+                    else {
+                        res.status(204).send({"message":"Directory is Empty"});
+                    }
+            },fetchQuery);
+        }
+        else{
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
+        }
+    }
+    catch (e){
+        console.log(e);
+        res.status(301).send({"message" : e});
+    }
+});
+
 
 function doesExist (callback, name, path){
     try {
@@ -1145,18 +1273,27 @@ deleteFromDatabase = ((name, path) => {
     }
 });
 
-deleteFromFileSystem = ((name, path) => {
+deleteFromFileSystem = ((callback, name, path) => {
+    let deleteResult=false;
+    let err=null;
     try{
-        console.log("Delete here: "+name+"   "+path);
-        // console.log(dirpath+filename+" Exist in File System: "+ exist);
+        // console.log("Delete here: "+name+"   "+path);
+        console.log(path+name);
         // if(exist){
-        // }
-        // else {
-        //     console.log("File does not exist in the storage on specified path");
+            shell.rm("-r",path+name);
+            if(!fs.existsSync(path+name)){
+                console.log("Deletion Done");
+                deleteResult=true;
+            }
         // }
     }
     catch(e) {
+        err=e;
+        console.log(e);
         throw e;
+    }
+    finally {
+        callback(err, deleteResult);
     }
 });
 

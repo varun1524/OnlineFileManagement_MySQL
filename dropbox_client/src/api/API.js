@@ -269,7 +269,7 @@ export const changeProfile = (payload) =>
 export const getprofile = (payload) =>
     fetch (`${api}/users/getprofile`,
         {
-            method: 'POST',
+            method: 'GET',
             headers: {
                 ...headers,
                 'Content-Type': 'application/json'
@@ -288,6 +288,23 @@ export const getActivityData = () =>
     fetch (`${api}/users/getActivityData`,
         {
             method: 'POST',
+            credentials: 'include'
+        }).then(res => {
+        return res;
+    }).catch(error => {
+        console.log("Error: " + error);
+        return error;
+    });
+
+export const deleteContent = (payload) =>
+    fetch (`${api}/users/deleteContent`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
             credentials: 'include'
         }).then(res => {
         return res;

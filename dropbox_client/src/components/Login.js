@@ -27,9 +27,6 @@ class Login extends Component{
                         <div className="panel panel-primary">
                             <div className="panel-body">
                                 <div className="panel-heading">
-                                    {/*<input type="button" onClick={()=>this.props.handlePageChange("/login")}*/}
-                                    {/*className="btn-link" value="Login"/>*/}
-                                    {/*<Link to={'/prelogin/signup'} component={SignUp}>SignUp</Link>*/}
                                     <Link to={'/home/signup'} component={SignUp}>Sign Up</Link>
                                 </div>
                                 <form className="form-horizontal">

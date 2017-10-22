@@ -10,7 +10,7 @@ class Message extends Component {
     render() {
         return (
             <div className="row justify-content-md-center">
-                <div className="col-md-3">
+                <div className="col-md-5 col-xs-5 col-lg-5 col-sm-5">
                     {this.props.message && ( //Just a change here
                         <div className="alert alert-warning" role="alert">
                             {this.props.message}

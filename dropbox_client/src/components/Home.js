@@ -510,7 +510,7 @@ class Home extends Component {
                                                 // handleDelete = {this.handleDelete}
                                                 // handleShare = {this.handleShare}
                                                 fetchSelectedDirectoryData = {this.fetchSelectedDirectoryData}
-                                                handleStarred = {this.handleStarred}
+                                                handleShare = {this.props.handleShare}
                                             />)
                                         })
                                     }

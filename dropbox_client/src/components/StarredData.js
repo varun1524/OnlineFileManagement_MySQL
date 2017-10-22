@@ -53,7 +53,7 @@ class StarredData extends Component{
                     </div>
                 </td>
                 <td>
-                    { item.ctime }
+                    { item.ctime.replace("T"," ").replace("Z","")}
                 </td>
                 <td>
                     { item.size }

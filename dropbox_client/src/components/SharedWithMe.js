@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
 import directoryIcon from "../images/directory.png";
 import fileIcon from "../images/file.png";
-import share from "../images/share.png"
 
 class ShowData extends Component{
 
@@ -11,23 +10,6 @@ class ShowData extends Component{
             hover: false,
         };
     }
-
-    toggleHover = (()=>{
-        if (this.state.hover) {
-            // alert("Red");
-        } else {
-            // alert("Blue");
-        }
-        this.setState({hover: !this.state.hover})
-    });
-
-    handleMouseHover = (()=>{
-        if (this.state.hover) {
-            alert("Red");
-        } else {
-            alert("Blue");
-        }
-    });
 
     showItemType = ((type) => {
         if(type === "d"){
@@ -48,7 +30,6 @@ class ShowData extends Component{
         return(
             <tbody>
             <tr>
-
                 <td className="text-justify">
                     <div className="u-table-row">
                     {this.showItemType(item.type)}
@@ -60,14 +41,6 @@ class ShowData extends Component{
                 </td>
                 <td>
                     { item.size }
-                </td>
-                <td >
-                    {/*<button className="btn btn-link" onClick={()=>{this.props.handleDelete(item)}}>*/}
-                        {/*<img src={Delete} alt="delete" width="15" height="15"/>*/}
-                    {/*</button>*/}
-                    <button className="btn btn-link" onClick={()=>{this.props.handleShare(item)}}>
-                        <img src={share} alt="share" width="15" height="15"/>
-                    </button>
                 </td>
             </tr>
             </tbody>

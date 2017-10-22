@@ -63,16 +63,24 @@ router.post('/doSignUp', function(req, res, next){
                             console.log(results);
                             if(results.affectedRows === 1){
                                 console.log("Sign up successful");
-                                act.insertIntoActivity(function (err, results) {
+                                insertUser="insert into userprofile (overview,work,education,contactinfo, lifeevents, music, sports, reading, username) " +
+                                    "values('','','','','',false,false,false,'"+ data.username +"');";
+                                mysql.insertData(function (err, result2) {
+                                    console.log(result2);
                                     if(err){
                                         console.log(err);
-                                        res.status(301).json({message: "Signup Successful. Failed to add user activity"});
+                                        throw "Error while adding data into userprofile table";
                                     }
-                                    console.log(results);
-                                },data.username, "signup");
-
-                                res.status(201).json({message: "Signup successful"});
-                                createUserDirectory(data.username);
+                                    act.insertIntoActivity(function (err, results3) {
+                                        if(err){
+                                            console.log(err);
+                                            res.status(301).json({message: "Signup Successful. Failed to add user activity"});
+                                        }
+                                        console.log(results3);
+                                        res.status(201).json({message: "Signup successful"});
+                                        createUserDirectory(data.username);
+                                    },data.username, "signup");
+                                },insertUser);
                             }
                             else {
                                 console.log("Error while inserting data into database");

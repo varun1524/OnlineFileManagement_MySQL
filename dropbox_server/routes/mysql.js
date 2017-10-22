@@ -93,6 +93,28 @@ function updateData (callback,sqlQuery){
     });
 }
 
+function deleteData(callback,sqlQuery){
+
+    console.log("\nSQL Query:: " + sqlQuery);
+
+    // connection=getConnection();
+
+    pool.getConnection(function (err, connection) {
+        connection.query(sqlQuery, function(err, result) {
+            if(err){
+                console.log("ERROR: " + err.message);
+            }
+            else
+            {	// return err or result
+                console.log("DB Results:"+result.affectedRows);
+                callback(err, result);
+            }
+        });
+        console.log("\nConnection closed..");
+        // connection.end();
+        connection.release()
+    });
+}
 
 
 
@@ -118,5 +140,5 @@ function updateData (callback,sqlQuery){
 
 exports.fetchData=fetchData;
 exports.insertData=insertData;
-// exports.procedure=procedure;
 exports.updateData=updateData;
+exports.deleteData=deleteData;

@@ -24,70 +24,31 @@ class File extends Component {
     }
 
     handleDelete = ((item)=>{
-        alert(item.id);
-        alert(this.state.dirpath);
-    });
-
-    handleShare = ((item)=>{
-        let sharingData = prompt("Please enter email id of users separated by semicolon ';' ");
-        if (sharingData === null) {
-            console.log("User cancelled the prompt.");
-        }
-        else {
-            sharingData = sharingData.trim();
-            if(sharingData === "")
-            {
-                console.log("User cancelled the prompt.");
-            }
-            else {
-                let sharingIds;
-                sharingIds = sharingData.split(";");
-                let data = {
-                    userdata:[],
-                    itemid: item.id
-                };
-                sharingIds.every((id) => {
-                    // let temp = {};
-                    if (id === "") {
-                        sharingIds.splice(sharingIds.indexOf(id), 1);
-                        return id;
-                    }
-                    // temp["username"] = id;
-                    data.userdata.push(id);
-                    return id;
-                });
-                console.log(data);
-                API.doShareData(data).then((response) => {
-                    // console.log(response);
-                    if(response.status === 201){
-                        this.setState({
-                            ...this.state,
-                            message : "Shared successfully"
-                        });
-                        response.json().then((message) => {
-                           console.log(message);
-                        });
-                    }
-                    else if (response.status === 203){
-                        this.setState({
-                            ...this.state,
-                            message : "Session expired. Sending to login screen"
-                        });
-                        this.props.handlePageChange("/home/signup");
-                    }
-                    else if (response.status === 301){
-                        this.setState({
-                            ...this.state,
-                            message : "Error while sharing file"
-                        });
-                        response.json().then((message) => {
-                            console.log(message);
-                        });
-                    }
-                });
-            }
-        }
-        // }
+        let itemid = {
+            id : item.id
+        };
+        API.deleteContent(itemid).then((response)=>{
+           if(response.status===201){
+               this.setState({
+                   ...this.state,
+                   message:"Deleted Successfuly"
+               });
+               this.fetchDirectoryData();
+           }
+           else if(response.status===203){
+               this.setState({
+                   ...this.state,
+                   message:"Session Expired. Sent to Login Screen"
+               });
+               this.props.handlePageChange("/home/login");
+           }
+           else if(response.status===301){
+               this.setState({
+                   ...this.state,
+                   message:"Delete Unsuccessful"
+               });
+           }
+        });
     });
 
     handleStarred = ((item) => {
@@ -250,60 +211,6 @@ class File extends Component {
             console.log("Already in Root Directory");
         }
     }
-
-    // fetchDirectoryData = ((recpath="") => {
-    //     this.setState((state) => {
-    //         let tempPath=recpath;
-    //         if(state.dirpath!==null || state.dirpath!== undefined || state.dirpath!=="") {
-    //             tempPath = state.dirpath + "/";
-    //         }
-    //         else{
-    //             tempPath = "";
-    //         }
-    //         let path = {
-    //             "path": tempPath
-    //         };
-    //         console.log(state.dirpath);
-    //
-    //         API.getDirectoryData(path).then((response) => {
-    //             if (response.status === 204) {
-    //                 this.setState({
-    //                     ...this.state,
-    //                     dirData: [],
-    //                     message: "Directory is Empty",
-    //                 });
-    //                 state.dirpath = state.dirpath + path.path;
-    //             }
-    //             else if(response.status === 201) {
-    //                 response.json().then((data) => {
-    //                     console.log(data);
-    //                     this.setState({
-    //                         ...this.state,
-    //                         dirData: data,
-    //                         message: "Directory Data Received",
-    //                     });
-    //                     state.dirpath = state.dirpath + path.path;
-    //                 });
-    //             }
-    //             else if (response.status === 301) {
-    //                 this.setState({
-    //                     ...this.state,
-    //                     message: "Error while loading directories"
-    //                 });
-    //             }
-    //             else if (response.status === 203) {
-    //                 this.setState({
-    //                     ...this.state,
-    //                     message: "Session Expired."
-    //                 });
-    //                 this.props.handlePageChange("/");
-    //             }
-    //             else {
-    //                 console.log("Error");
-    //             }
-    //         });
-    //     });
-    // });
 
     fetchDirectoryData = (() => {
         this.setState((state) => {
@@ -513,7 +420,7 @@ class File extends Component {
                                                 key={index}
                                                 item={item}
                                                 handleDelete = {this.handleDelete}
-                                                handleShare = {this.handleShare}
+                                                handleShare = {this.props.handleShare}
                                                 fetchSelectedDirectoryData = {this.fetchSelectedDirectoryData}
                                                 handleStarred = {this.handleStarred}
                                             />)

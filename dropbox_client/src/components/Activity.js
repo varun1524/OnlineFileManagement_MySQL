@@ -73,9 +73,6 @@ class Activity extends Component{
                                     <thead>
                                     <tr>
                                         <th>Activity</th>
-                                        {/*<th>type</th>*/}
-                                        {/*<th>ctime</th>*/}
-                                        <th>Time</th>
                                     </tr>
                                     </thead>
                                     {
