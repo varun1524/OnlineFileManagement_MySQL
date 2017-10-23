@@ -88,7 +88,6 @@ app.get('/login/getSession', function(req, res) {
         else {
             res.status(203).send({"message":"Session Expired. Login Again"});
         }
-        // var input = JSON.parse(JSON.stringify(req.body));
     }
     catch (e){
         console.log(e);

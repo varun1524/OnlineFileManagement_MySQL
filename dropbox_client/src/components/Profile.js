@@ -20,7 +20,6 @@ class Profile extends Component{
     }
 
     componentWillMount(){
-
         API.getprofile().then((response)=>{
             if(response.status===201){
                 response.json().then((data)=>{

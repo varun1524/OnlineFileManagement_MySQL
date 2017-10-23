@@ -7,6 +7,7 @@ let fs = require('fs');
 let shell = require('shelljs');
 let mongo = require("./mongo");
 let mongoURL = "mongodb://localhost:27017/dropbox";
+let ObjectId = require('mongodb').ObjectID;
 // let fse = require('fs-extra');
 let filePath="";
 
@@ -79,21 +80,22 @@ router.post('/getDirData', function (req, res, next) {
             let jsonObj = [];
             let i = 0;
             dirpath=dirpath.replace("//","/");
-            let fetchQuery = "select * from dropboxstorage where path = '" + dirpath+"'";
-            console.log("fetch Query : " + fetchQuery);
 
-            mysql.fetchData(function(err,results){
-                // console.log(results);
-                if(err){
-                    throw err;
-                }
-                else
-                {
+            mongo.connect(mongoURL, function () {
+                let itemPath = {
+                    path : dirpath
+                };
+                let storagecoll = mongo.collection("dropboxstorage");
+                storagecoll.find(itemPath).toArray(function(err,results){
+                    console.log(results);
+                    if(err){
+                        throw err;
+                    }
                     if(results.length>0) {
                         for (i = 0; i < results.length; i++) {
                             let tempObj = {};
                             console.log(results[i].path);
-                            tempObj["id"] = results[i].id;
+                            tempObj["id"] = results[i]._id;
                             tempObj["name"] = results[i].name;
                             tempObj["type"] = results[i].type;
                             tempObj["ctime"] = results[i].creationtime;
@@ -109,8 +111,8 @@ router.post('/getDirData', function (req, res, next) {
                     else {
                         res.status(204).send({"message":"Directory is Empty"});
                     }
-                }
-            },fetchQuery);
+                });
+            });
         }
         else{
             res.status(203).send({"message":"Session Expired. Please Login Again"});
@@ -137,7 +139,6 @@ router.post('/createDir', function(req, res, next){
                 console.log("Create Directory Path: "+createDirpath);
                 console.log("Parent Directory Path: "+userDirpath);
                 if(!fs.existsSync(createDirpath)) {
-
                     insertIntoStorage(function (err, result) {
                         if(err){
                             res.status(301).send({message: "Error while adding directory data into database"});
@@ -187,87 +188,92 @@ router.post('/share', function (req, res, next) {
             let message = [];
             let username = req.session.username;
 
-            recUserArr.map((user) => {
-                if (username !== user) {
-                    let fetchQuery = "select count(*) as records from users where username = '" + user+ "';";
-                    console.log("Fetch Query: " + fetchQuery);
-                    console.log(user);
-                    mysql.fetchData(function (err, results) {
-                        console.log("Fetched Records: " + results[0].records);
-                        if (err) {
-                            console.log(err);
-                            message.push({user:"Error in sharing data."});
-                        }
-                        else if (results[0].records === 0) {
-                            message.push({ user : "User does not have account in dropbox."});
-                        }
-                        else if(results[0].records===1){
-                            let fetchQuery1 = "select count(*) as records from sharedetails where shareditemid = '"+itemid+"' " +
-                                "AND sharedwith = '"+user+"';";
-                            mysql.fetchData(function (err, result) {
-                                if(err){
-                                    message.push({user:"data shared with user successfully"});
-                                }
-                                else if(result[0].records === 1){
-                                    console.log("User " + user + " already have access to shared item.");
-                                    message.push({ user : "User already have access to shared item."});
-                                }
-                                else if(result[0].records === 0){
+            mongo.connect(mongoURL, function () {
+                let userscoll = mongo.collection("users");
+                recUserArr.map((user) => {
+                    if (username !== user) {
+                        userscoll.find({username : user},{hashPassword: false }).toArray(function (err, results) {
+                            console.log(results);
+                            console.log("Fetched Records: " + results.length);
+                            if (err) {
+                                console.log(err);
+                                message.push({user:"Error in sharing data."});
+                            }
+                            else if (results.length === 0) {
+                                message.push({ user : "User does not have account in dropbox."});
+                            }
+                            else if(results.length===1){
+                                let sharedetailscoll = mongo.collection("sharedetails");
 
-                                    // recUserArr.
-                                    let insertQuery = "insert into sharedetails (shareditemid, sharedwith) " +
-                                        "values('" + itemid + "','" + user + "');";
-                                    console.log("Insert Query : " + insertQuery);
+                                sharedetailscoll.find({$and:[{_id : ObjectId(itemid)},{sharedwith : user}]}).toArray(function (err, results1) {
+                                    console.log(results1);
+                                    console.log("Fetched Records: "+results1.length);
+                                    if(err){
+                                        message.push({user:"data shared with user successfully"});
+                                        console.log(err);
+                                        throw err;
+                                    }
+                                    else if(results1.length === 1){
+                                        console.log("User " + user + " already have access to shared item.");
+                                        message.push({ user : "User already have access to shared item."});
+                                    }
+                                    else if(results1.length === 0){
+                                        let insertQuery = {
+                                            sharedwith : user,
+                                            shareditemid : ObjectId(itemid)
+                                        };
 
-                                    mysql.insertData(function (err, results) {
-                                        console.log(results);
-                                        if (err) {
-                                            console.log("Error: " + err);
-                                            message.push({user : "Error while inserting data into database"});
-                                            // res.status(301).send({"message": "Error while sharing data"});
-                                        }
-                                        else if (results.affectedRows === 1) {
-                                            let updateQuery = "update dropboxstorage set sharedstatus = true where id = '" + itemid + "';";
-                                            mysql.updateData(function (err, results) {
-                                                if (err) {
-                                                    // res.status(301).send({"message": "Error while sharing data"});
-                                                    console.log(err);
-                                                    message.push({user:"Error while sharing data with this user successfully"});
-                                                }
-                                                else if (results.affectedRows === 1) {
-                                                    message.push({user:"data shared with user successfully"});
-                                                    act.insertIntoActivity(function (err, results2) {
-                                                        if(err){
-                                                            console.log(err);
-                                                        }
-                                                        if (message.length===recUserArr.length) {
-                                                            console.log(message);
-                                                            res.status(201).send(message);
-                                                        }
-                                                        console.log("Activity added : "+results2)
-                                                    }, username, "share", itemid);
-                                                    console.log("Shared status updated to true successfully in dropboxstorage");
-                                                }
-                                                else {
-                                                    message.push({user:"could not share data with this user"});
-                                                    console.log("Failed to update Shared status in dropboxstorage");
-                                                }
-                                            }, updateQuery);
-                                            dataInserted = true;
-                                        }
-                                        else {
-                                            console.log("Error while inserting data into database");
-                                        }
-                                    }, insertQuery);
-                                }
-                            },fetchQuery1);
-                        }
-                        console.log(message.length);
-                        console.log(recUserArr.length);
+                                        sharedetailscoll.insertOne(insertQuery, function (err, results2) {
+                                            console.log(results2.insertedCount);
+                                            if (err) {
+                                                console.log("Error: " + err);
+                                                message.push({user : "Error while inserting data into database"});
+                                                throw err;
+                                            }
+                                            else if (results2.insertedCount === 1) {
+                                                let storagecoll = mongo.collection("dropboxstorage");
+                                                storagecoll.updateOne({_id:ObjectId(itemid)}, {$set:{sharedstatus : true}}, function (err, results3) {
+                                                    console.log(results3.result.nModified);
+                                                    if (err) {
+                                                        // res.status(301).send({"message": "Error while sharing data"});
+                                                        console.log(err);
+                                                        message.push({user:"Error while sharing data with this user successfully"});
+                                                    }
+                                                    else if (results3.result.nModified === 1) {
+                                                        message.push({user:"data shared with user successfully"});
+                                                        act.insertIntoActivity(function (err, results4) {
+                                                            if(err){
+                                                                console.log(err);
+                                                            }
+                                                            if (message.length===recUserArr.length) {
+                                                                console.log(message);
+                                                                res.status(201).send(message);
+                                                            }
+                                                            console.log("Activity added : " + results4)
+                                                        }, username, "share", itemid);
+                                                        console.log("Shared status updated to true successfully in dropboxstorage");
+                                                    }
+                                                    else {
+                                                        message.push({user:"could not share data with this user"});
+                                                        console.log("Failed to update Shared status in dropboxstorage");
+                                                    }
+                                                });
+                                                dataInserted = true;
+                                            }
+                                            else {
+                                                console.log("Error while inserting data into database");
+                                            }
+                                        }, insertQuery);
+                                    }
+                                });
+                            }
+                            console.log(message.length);
+                            console.log(recUserArr.length);
+                        });
 
+                    }
+                });
 
-                    }, fetchQuery);
-                }
             });
 
         }
@@ -287,36 +293,48 @@ router.post('/changestarredstatus', function (req, res, next) {
             let username = req.session.username;
             console.log(JSON.stringify(req.body));
             let itemid = req.body.id;
-            let changeStatusTo = req.body.changeStatusTo;
+            let changeStatusTo=req.body.changeStatusTo;
+            let findquery = {
+                _id : ObjectId(itemid)
+            };
+            let updatequery = {
+                $set:{starred : req.body.changeStatusTo}
+            };
+            console.log(findquery);
+            console.log(updatequery);
 
-
-            let updateQuery = "update dropboxstorage set starred = " + changeStatusTo + " where id = '" + itemid + "';";
-
-            mysql.updateData(function (err, results) {
-                if (err) {
-                    console.log(err);
-                }
-                else if (results.affectedRows === 1) {
-                    console.log("Shared status updated to true successfully in dropboxstorage");
-                    let activityType;
-                    if(changeStatusTo) {
-                        activityType = "starred";
+            mongo.connect(mongoURL, function () {
+                let storagecoll = mongo.collection("dropboxstorage");
+                storagecoll.updateOne(findquery,updatequery,function (err, results) {
+                    // console.log(results);
+                    console.log(results.result.nModified);
+                    if (err) {
+                        console.log(err);
+                        throw err;
+                    }
+                    else if (results.result.nModified === 1) {
+                        console.log("Shared status updated to true successfully in dropboxstorage");
+                        let activityType;
+                        if(changeStatusTo) {
+                            activityType = "starred";
+                        }
+                        else {
+                            activityType = "unstarred";
+                        }
+                        act.insertIntoActivity(function (err, results2) {
+                            if(err){
+                                console.log(err);
+                            }
+                            console.log("Activity added : "+results2)
+                        }, username, activityType, itemid);
+                        res.status(201).send({"message":"starred status updated successfully"});
                     }
                     else {
-                        activityType = "unstarred";
+                        console.log("Failed to update Starred status in dropboxstorage");
+                        res.status(301).json({"message": "Failed to Add in Starred"})
                     }
-                    act.insertIntoActivity(function (err, results2) {
-                        if(err){
-                            console.log(err);
-                        }
-                        console.log("Activity added : "+results2)
-                    }, username,activityType , itemid);
-                    res.status(201).send({"message":"starred status updated successfully"});
-                }
-                else {
-                    console.log("Failed to update Starred status in dropboxstorage");
-                }
-            }, updateQuery);
+                });
+            });
         }
         else {
             res.status(203).json({"message": "Session Expired. Login again"})
@@ -332,6 +350,7 @@ router.post('/getStarredData', function (req, res, next) {
     try {
         console.log(req.session.username);
         if(req.session.username!==null || req.session.username!==undefined) {
+            let username = req.session.username;
             let clientPath = req.body.path;
             let dirpath;
             if (clientPath === "" || clientPath === null || clientPath === undefined || clientPath === "/") {
@@ -346,109 +365,43 @@ router.post('/getStarredData', function (req, res, next) {
             console.log(files);
             let jsonObj = [];
             let i = 0;
-            // if(files.length>0) {
-            // files.map((file) => {
-            //     let tempObj = {};
-            //     // console.log(dirpath + file);
-            //     fs.lstat((dirpath + file), function (err, stats) {
-            //         if (err) {
-            //             throw ("Error while fetching list of files/folders .Error: " + err)
-            //         }
-            //         // console.log(stats);
-            //
-            //         if (stats.isFile()) {
-            //             // console.log('file');
-            //             type = "file";
-            //         }
-            //         if (stats.isDirectory()) {
-            //             // console.log('directory');
-            //             type = "directory";
-            //         }
-            //
-            //         tempObj["name"] = file;
-            //         tempObj["type"] = type;
-            //         tempObj["ctime"] = stats["ctime"];
-            //         tempObj["mtime"] = stats["mtime"];
-            //         tempObj["size"] = stats["size"];
-            //
-            //         let isFavourite=false;
-            //
-            //         let insertQuery="update into dropboxstorage (name, type, path, creationtime, modifiedtime, size, ownerusername) values('"+name+"','"+type+"','"+path+"','"+ctime+"','"+mtime+"','"+size+"','"+username+"');";
-            //         console.log("Insert Query : " + insertQuery);
-            //
-            //         mysql.fetchData(function(err,results){
-            //             console.log(results);
-            //             if(err){
-            //                 throw err;
-            //             }
-            //             else
-            //             {
-            //                 console.log("Affected Rows: "+results.affectedRows);
-            //                 console.log(results);
-            //                 if(results.affectedRows === 1){
-            //                     console.log("valid Login");
-            //                     return true;
-            //                 }
-            //                 else {
-            //                     console.log("Error while inserting data into database");
-            //                     return false;
-            //                 }
-            //             }
-            //         },insertQuery);
-            //
-            //         tempObj["favourite"] = isFavourite;
-            //
-            //         jsonObj.push(tempObj);
-            //         // console.log(jsonObj);
-            //         // console.log(jsonObj.length);
-            //         if (jsonObj.length === files.length) {
-            //             // console.log(jsonObj);
-            //             res.status(201).send(jsonObj);
-            //         }
-            //         i = i + 1;
-            //     });
-            // });
 
-            dirpath=dirpath.replace("//","/");
-            let fetchQuery="select * from dropboxstorage where path LIKE '" + dirpath+"%' AND starred = "+ true +";";
-            console.log("fetch Query : " + fetchQuery);
+            // dirpath=dirpath.replace("//","/");
 
-            mysql.fetchData(function(err,results){
-                // console.log(results);
-                if(err){
-                    throw err;
-                }
-                else
-                {
-                    if(results.length>0) {
-                        for (i = 0; i < results.length; i++) {
-                            let tempObj = {};
-                            console.log(results[i].path);
-                            tempObj["id"] = results[i].id;
-                            tempObj["name"] = results[i].name;
-                            tempObj["path"] = results[i].path;
-                            tempObj["type"] = results[i].type;
-                            tempObj["ctime"] = results[i].creationtime;
-                            tempObj["size"] = results[i].size;
-                            tempObj["starred"] = results[i].starred;
-                            tempObj["sharedstatus"] = results[i].sharedstatus;
-                            jsonObj.push(tempObj);
+            mongo.connect(mongoURL, function () {
+                let storagecoll = mongo.collection("dropboxstorage");
+                storagecoll.find({$and:[{ownerusername:username},{starred:true}]}).toArray(function (err, results) {
+                    if(err){
+                        throw err;
+                    }
+                    else
+                    {
+                        if(results.length>0) {
+                            for (i = 0; i < results.length; i++) {
+                                let tempObj = {};
+                                console.log(results[i].path);
+                                tempObj["id"] = results[i]._id;
+                                tempObj["name"] = results[i].name;
+                                tempObj["path"] = results[i].path;
+                                tempObj["type"] = results[i].type;
+                                tempObj["ctime"] = results[i].creationtime;
+                                tempObj["size"] = results[i].size;
+                                tempObj["starred"] = results[i].starred;
+                                tempObj["sharedstatus"] = results[i].sharedstatus;
+                                jsonObj.push(tempObj);
+                            }
+                            res.status(201).send(jsonObj);
                         }
-                        res.status(201).send(jsonObj);
+                        else {
+                            res.status(204).send({"message":"Directory is Empty"});
+                        }
                     }
-                    else {
-                        res.status(204).send({"message":"Directory is Empty"});
-                    }
-                }
-            },fetchQuery);
+                });
+            });
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -460,123 +413,58 @@ router.post('/getDataSharedByUser', function (req, res, next) {
     try {
         console.log(req.session.username);
         if(req.session.username!==null || req.session.username!==undefined) {
-            let clientPath = req.body.path;
-            let dirpath;
-            if (clientPath === "" || clientPath === null || clientPath === undefined || clientPath === "/") {
-                dirpath = ("./dropboxstorage/" + req.session.username + "/" );
-            }
-            else {
-                dirpath = ("./dropboxstorage/" + req.session.username + "/" + clientPath);
-            }
-            console.log(dirpath);
-
-            let files = fs.readdirSync(dirpath);
-            console.log(files);
+            // let clientPath = req.body.path;
+            let username = req.session.username;
+            // let dirpath;
+            // if (clientPath === "" || clientPath === null || clientPath === undefined || clientPath === "/") {
+            //     dirpath = ("./dropboxstorage/" + req.session.username + "/" );
+            // }
+            // else {
+            //     dirpath = ("./dropboxstorage/" + req.session.username + "/" + clientPath);
+            // }
+            // console.log(dirpath);
+            //
+            // let files = fs.readdirSync(dirpath);
+            // console.log(files);
             let jsonObj = [];
             let i = 0;
-            // if(files.length>0) {
-            // files.map((file) => {
-            //     let tempObj = {};
-            //     // console.log(dirpath + file);
-            //     fs.lstat((dirpath + file), function (err, stats) {
-            //         if (err) {
-            //             throw ("Error while fetching list of files/folders .Error: " + err)
-            //         }
-            //         // console.log(stats);
-            //
-            //         if (stats.isFile()) {
-            //             // console.log('file');
-            //             type = "file";
-            //         }
-            //         if (stats.isDirectory()) {
-            //             // console.log('directory');
-            //             type = "directory";
-            //         }
-            //
-            //         tempObj["name"] = file;
-            //         tempObj["type"] = type;
-            //         tempObj["ctime"] = stats["ctime"];
-            //         tempObj["mtime"] = stats["mtime"];
-            //         tempObj["size"] = stats["size"];
-            //
-            //         let isFavourite=false;
-            //
-            //         let insertQuery="update into dropboxstorage (name, type, path, creationtime, modifiedtime, size, ownerusername) values('"+name+"','"+type+"','"+path+"','"+ctime+"','"+mtime+"','"+size+"','"+username+"');";
-            //         console.log("Insert Query : " + insertQuery);
-            //
-            //         mysql.fetchData(function(err,results){
-            //             console.log(results);
-            //             if(err){
-            //                 throw err;
-            //             }
-            //             else
-            //             {
-            //                 console.log("Affected Rows: "+results.affectedRows);
-            //                 console.log(results);
-            //                 if(results.affectedRows === 1){
-            //                     console.log("valid Login");
-            //                     return true;
-            //                 }
-            //                 else {
-            //                     console.log("Error while inserting data into database");
-            //                     return false;
-            //                 }
-            //             }
-            //         },insertQuery);
-            //
-            //         tempObj["favourite"] = isFavourite;
-            //
-            //         jsonObj.push(tempObj);
-            //         // console.log(jsonObj);
-            //         // console.log(jsonObj.length);
-            //         if (jsonObj.length === files.length) {
-            //             // console.log(jsonObj);
-            //             res.status(201).send(jsonObj);
-            //         }
-            //         i = i + 1;
-            //     });
-            // });
 
-            dirpath=dirpath.replace("//","/");
-            let fetchQuery="select * from dropboxstorage where path LIKE '" + dirpath+"%' AND sharedstatus = "+ true +";";
-            console.log("fetch Query : " + fetchQuery);
+            // dirpath=dirpath.replace("//","/");
 
-            mysql.fetchData(function(err,results){
-                // console.log(results);
-                if(err){
-                    throw err;
-                }
-                else
-                {
-                    if(results.length>0) {
-                        for (i = 0; i < results.length; i++) {
-                            let tempObj = {};
-                            console.log(results[i].path);
-                            tempObj["id"] = results[i].id;
-                            tempObj["name"] = results[i].name;
-                            tempObj["path"] = results[i].path;
-                            tempObj["type"] = results[i].type;
-                            tempObj["ctime"] = results[i].creationtime;
-                            tempObj["size"] = results[i].size;
-                            tempObj["starred"] = results[i].starred;
-                            tempObj["sharedstatus"] = results[i].sharedstatus;
-                            jsonObj.push(tempObj);
+            mongo.connect(mongoURL, function () {
+                let storagecoll = mongo.collection("dropboxstorage");
+                storagecoll.find({$and:[{ownerusername : username},{sharedstatus : true}]}).toArray(function(err,results){
+                    console.log(results);
+                    if(err){
+                        throw err;
+                    }
+                    else
+                    {
+                        if(results.length>0) {
+                            for (i = 0; i < results.length; i++) {
+                                let tempObj = {};
+                                tempObj["id"] = results[i]._id;
+                                tempObj["name"] = results[i].name;
+                                tempObj["path"] = results[i].path;
+                                tempObj["type"] = results[i].type;
+                                tempObj["ctime"] = results[i].creationtime;
+                                tempObj["size"] = results[i].size;
+                                tempObj["starred"] = results[i].starred;
+                                tempObj["sharedstatus"] = results[i].sharedstatus;
+                                jsonObj.push(tempObj);
+                            }
+                            res.status(201).send(jsonObj);
                         }
-                        res.status(201).send(jsonObj);
+                        else {
+                            res.status(204).send({"message":"Directory is Empty"});
+                        }
                     }
-                    else {
-                        res.status(204).send({"message":"Directory is Empty"});
-                    }
-                }
-            },fetchQuery);
+                });
+            });
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -603,117 +491,54 @@ router.post('/fetchDataSharedWithUser', function (req, res, next) {
             // console.log(files);
             let jsonObj = [];
             let i = 0;
-            // if(files.length>0) {
-            // files.map((file) => {
-            //     let tempObj = {};
-            //     // console.log(dirpath + file);
-            //     fs.lstat((dirpath + file), function (err, stats) {
-            //         if (err) {
-            //             throw ("Error while fetching list of files/folders .Error: " + err)
-            //         }
-            //         // console.log(stats);
-            //
-            //         if (stats.isFile()) {
-            //             // console.log('file');
-            //             type = "file";
-            //         }
-            //         if (stats.isDirectory()) {
-            //             // console.log('directory');
-            //             type = "directory";
-            //         }
-            //
-            //         tempObj["name"] = file;
-            //         tempObj["type"] = type;
-            //         tempObj["ctime"] = stats["ctime"];
-            //         tempObj["mtime"] = stats["mtime"];
-            //         tempObj["size"] = stats["size"];
-            //
-            //         let isFavourite=false;
-            //
-            //         let insertQuery="update into dropboxstorage (name, type, path, creationtime, modifiedtime, size, ownerusername) values('"+name+"','"+type+"','"+path+"','"+ctime+"','"+mtime+"','"+size+"','"+username+"');";
-            //         console.log("Insert Query : " + insertQuery);
-            //
-            //         mysql.fetchData(function(err,results){
-            //             console.log(results);
-            //             if(err){
-            //                 throw err;
-            //             }
-            //             else
-            //             {
-            //                 console.log("Affected Rows: "+results.affectedRows);
-            //                 console.log(results);
-            //                 if(results.affectedRows === 1){
-            //                     console.log("valid Login");
-            //                     return true;
-            //                 }
-            //                 else {
-            //                     console.log("Error while inserting data into database");
-            //                     return false;
-            //                 }
-            //             }
-            //         },insertQuery);
-            //
-            //         tempObj["favourite"] = isFavourite;
-            //
-            //         jsonObj.push(tempObj);
-            //         // console.log(jsonObj);
-            //         // console.log(jsonObj.length);
-            //         if (jsonObj.length === files.length) {
-            //             // console.log(jsonObj);
-            //             res.status(201).send(jsonObj);
-            //         }
-            //         i = i + 1;
-            //     });
-            // });
 
-            // dirpath=dirpath.replace("//","/");
-            let fetchQuery="select * from sharedetails where sharedwith='" + username+"';";
-            console.log("fetch Query : " + fetchQuery);
-
-            mysql.fetchData(function(err,results){
-                // console.log(results);
-                if(err){
-                    throw err;
-                }
-                else
-                {
-                    if(results.length>0) {
-                        for (i = 0; i < results.length; i++) {
-                            let tempObj = {};
-
-                            fetchQuery = "select * from dropboxstorage where id = '"+ results[i].shareditemid+"';";
-                            mysql.fetchData(function(err,results1) {
-                                console.log(results1);
-                                if (err) {
-                                    throw err;
-                                }
-                                else {
-                                    for (j=0; j<results1.length;  j++ ) {
-                                        // console.log(results[i].path);
-                                        tempObj["id"] = results1[j].id;
-                                        tempObj["name"] = results1[j].name;
-                                        tempObj["path"] = results1[j].path;
-                                        tempObj["type"] = results1[j].type;
-                                        tempObj["ctime"] = results1[j].creationtime;
-                                        tempObj["size"] = results1[j].size;
-                                        tempObj["starred"] = results[j].starred;
-                                        tempObj["sharedstatus"] = results1[j].sharedstatus;
-                                        jsonObj.push(tempObj);
+            mongo.connect(mongoURL, function () {
+                let sharedetailscoll = mongo.collection("sharedetails");
+                sharedetailscoll.find({sharedwith:username}).toArray(function (err, results) {
+                    console.log(results);
+                    if(err){
+                        throw err;
+                    }
+                    else
+                    {
+                        if(results.length>0) {
+                            let storagecoll = mongo.collection("dropboxstorage");
+                            for (i = 0; i < results.length; i++) {
+                                let tempObj = {};
+                                storagecoll.find({_id : ObjectId(results[i].shareditemid)}).toArray(function(err,results1) {
+                                    console.log(results1);
+                                    if (err) {
+                                        throw err;
                                     }
-                                    if(results.length === jsonObj.length) {
-                                        res.status(201).send(jsonObj);
+                                    else {
+                                        for (j=0; j<results1.length;  j++ ) {
+                                            // console.log(results[i].path);
+                                            tempObj["id"] = results1[j]._id;
+                                            tempObj["name"] = results1[j].name;
+                                            tempObj["path"] = results1[j].path;
+                                            tempObj["type"] = results1[j].type;
+                                            tempObj["ctime"] = results1[j].creationtime;
+                                            tempObj["size"] = results1[j].size;
+                                            tempObj["starred"] = results[j].starred;
+                                            tempObj["sharedstatus"] = results1[j].sharedstatus;
+                                            jsonObj.push(tempObj);
+                                        }
+                                        if(results.length === jsonObj.length) {
+                                            res.status(201).send(jsonObj);
+                                        }
+
                                     }
 
-                                }
+                                },fetchQuery);
+                            }
 
-                            },fetchQuery);
+                        }
+                        else {
+                            res.status(204).send({"message":"Directory is Empty"});
                         }
                     }
-                    else {
-                        res.status(204).send({"message":"Directory is Empty"});
-                    }
-                }
-            },fetchQuery);
+                });
+            });
         }
         else{
             res.status(204).send({"message":"Directory is Empty"});
@@ -737,61 +562,51 @@ router.post('/accessSelectedSharedData', function (req, res, next) {
             let clientPath = req.body.path;
 
             // dirpath=dirpath.replace("//","/");
-            let fetchQuery="select * from sharedetails where sharedwith='" + username+"';";
-            console.log("fetch Query : " + fetchQuery);
 
-            mysql.fetchData(function(err,results){
-                // console.log(results);
-                if(err){
-                    throw err;
-                }
-                else
-                {
+            mongo.connect(mongoURL, function () {
+                let sharedetailscoll = mongo.collection("sharedetails");
+                sharedetailscoll.find({sharedwith : username}).toArray(function (err, results) {
+                    if(err){
+                        throw err;
+                    }
                     if(results.length>0) {
+                        let storagecoll = mongo.collection("dropboxstorage");
                         for (i = 0; i < results.length; i++) {
                             let tempObj = {};
 
-                            fetchQuery = "select * from dropboxstorage where id = '"+ results[i].shareditemid+"';";
-                            mysql.fetchData(function(err,results1) {
+                            storagecoll.find({_id : ObjectId(results[i].shareditemid)}).toArray(function (err, results1) {
                                 console.log(results1);
                                 if (err) {
                                     throw err;
                                 }
-                                else {
-                                    for (j=0; j<results1.length;  j++ ) {
-                                        // console.log(results[i].path);
-                                        tempObj["id"] = results1[j].id;
-                                        tempObj["name"] = results1[j].name;
-                                        tempObj["path"] = results1[j].path;
-                                        tempObj["type"] = results1[j].type;
-                                        tempObj["mtime"] = results1[j].modifiedtime;
-                                        tempObj["size"] = results1[j].size;
-                                        tempObj["starred"] = results[j].starred;
-                                        tempObj["sharedstatus"] = results1[j].sharedstatus;
-                                        jsonObj.push(tempObj);
-                                    }
-                                    if(results.length === jsonObj.length) {
-                                        res.status(201).send(jsonObj);
-                                    }
-
+                                for (j=0; j<results1.length;  j++ ) {
+                                    // console.log(results[i].path);
+                                    tempObj["id"] = results1[j]._id;
+                                    tempObj["name"] = results1[j].name;
+                                    tempObj["path"] = results1[j].path;
+                                    tempObj["type"] = results1[j].type;
+                                    tempObj["ctime"] = results1[j].creationtime;
+                                    tempObj["size"] = results1[j].size;
+                                    tempObj["starred"] = results[j].starred;
+                                    tempObj["sharedstatus"] = results1[j].sharedstatus;
+                                    jsonObj.push(tempObj);
                                 }
+                                if(results.length === jsonObj.length) {
+                                    res.status(201).send(jsonObj);
+                                }
+                            })
 
-                            },fetchQuery);
                         }
                     }
                     else {
                         res.status(204).send({"message":"Directory is Empty"});
                     }
-                }
-            },fetchQuery);
+                });
+            });
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -808,26 +623,24 @@ router.post('/accessSharedData', function (req, res, next) {
             let item = req.body.item;
             path=item.path + item.name + "/";
             console.log(path);
-            let fetchQuery="select * from dropboxstorage where path='" + path+"';";
-            console.log("fetch Query : " + fetchQuery);
 
-            mysql.fetchData(function(err,results){
-                console.log("result:");
-                console.log(results);
-                if(err){
-                    throw err;
-                }
-                else
-                {
+            mongo.connect(mongoURL, function () {
+                let storagecoll = mongo.collection("dropboxstorage");
+                storagecoll.find({path:path}).toArray(function (err, results) {
+                    console.log("result:");
+                    console.log(results);
+                    if(err){
+                        throw err;
+                    }
                     if(results.length>0) {
                         let jsonObj=[];
                         for (j = 0; j < results.length; j++) {
                             let tempObj = {};
-                            tempObj["id"] = results[j].id;
+                            tempObj["id"] = results[j]._id;
                             tempObj["name"] = results[j].name;
                             tempObj["path"] = results[j].path;
                             tempObj["type"] = results[j].type;
-                            tempObj["mtime"] = results[j].modifiedtime;
+                            tempObj["ctime"] = results[j].creationtime;
                             tempObj["size"] = results[j].size;
                             tempObj["starred"] = results[j].starred;
                             tempObj["sharedstatus"] = results[j].sharedstatus;
@@ -838,16 +651,12 @@ router.post('/accessSharedData', function (req, res, next) {
                     else {
                         res.status(204).send({"message":"Directory is Empty"});
                     }
-                }
-            },fetchQuery);
+                });
+            });
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -919,93 +728,84 @@ router.post('/getActivityData', function (req, res, next) {
 
             let jsonObj = [];
 
-            let fetchQuery="select * from useractivities where username = '" + username+"' AND activitytype='signup'";
-            mysql.fetchData(function (err, result) {
-                if(err){
-                    console.log("Error while fetting account creation data");
-                }
-                if(result.length===1) {
-                    let tempObj={};
-                    tempObj["activitytype"] = result[0].activitytype;
-                    tempObj["activitytime"] = result[0].activitytime;
-                    tempObj["username"] = result[0].username;
-                    jsonObj.push(tempObj);
+            mongo.connect(mongoURL, function () {
+                let useractivitycoll = mongo.collection("useractivities");
+                let storageactivitycoll = mongo.collection("storageactivities");
+                useractivitycoll.find({$and:[{username:username},{activitytype:"signup"}]}).toArray(function (err, results) {
+                    console.log(results);
+                    if(err){
+                        console.log("Error while fetting account creation data");
+                    }
+                    if(results.length===1) {
+                        let tempObj={};
+                        tempObj["activitytype"] = results[0].activitytype;
+                        tempObj["activitytime"] = results[0].activitytime;
+                        tempObj["username"] = results[0].username;
+                        jsonObj.push(tempObj);
 
-                    fetchQuery="select * from useractivities where username = '" + username+"' AND activitytype!='signup'" +
-                        " ORDER BY useractivityid DESC LIMIT 1";
-                    console.log("fetch Query : " + fetchQuery);
-
-                    mysql.fetchData(function(err,results){
-                        console.log(results);
-                        if(err){
-                            console.log(err);
-                            throw err;
-                        }
-                        else
-                        {
-                            if(results.length>0) {
-                                for (i = 0; i < results.length; i++) {
-                                    let tempObj = {};
-                                    console.log(results[i].path);
-                                    tempObj["activitytype"] = results[i].activitytype;
-                                    tempObj["activitytime"] = results[i].activitytime;
-                                    jsonObj.push(tempObj);
-                                }
-
-
-                                fetchQuery="select * from storageactivities where username = '" + username+"'" +
-                                    " ORDER BY activityid DESC LIMIT 5";
-                                console.log(fetchQuery);
-                                mysql.fetchData(function(err,results1) {
-                                    console.log(results1);
-                                    if (err) {
-                                        throw err;
+                        useractivitycoll.find({$and:[{username:username},{activitytype:"login"}]}).sort({activitytime:-1}).limit(4).toArray(function (err, results1) {
+                            console.log(results1);
+                            if(err){
+                                console.log(err);
+                                throw err;
+                            }
+                            else
+                            {
+                                if(results1.length>0) {
+                                    for (i = 0; i < results1.length; i++) {
+                                        let tempObj = {};
+                                        tempObj["activitytype"] = results1[i].activitytype;
+                                        tempObj["activitytime"] = results1[i].activitytime;
+                                        jsonObj.push(tempObj);
                                     }
-                                    if (results1.length > 0) {
-                                        let count=0;
-                                        for (i = 0; i < results1.length; i++) {
-                                            let tempObj = {};
-                                            tempObj["activitytype"] = results1[i].activitytype;
-                                            tempObj["activitytime"] = results1[i].activitytime;
 
-                                            let fetchquery1="select name, type from dropboxstorage where id = '"+
-                                                results1[i].itemid +"';";
-                                            console.log(fetchquery1);
-                                            mysql.fetchData(function (err, results2) {
-                                                console.log("results2:");
-                                                console.log(results2);
-                                                if(err){
-                                                    console.log(err);
-                                                    throw "Error while fetching file/folder name";
-                                                }
-                                                if(results2.length===1){
-                                                    tempObj["name"] = results2[0].name;
-                                                    tempObj["type"] = results2[0].type;
-                                                    jsonObj.push(tempObj);
-                                                    count++;
-                                                    console.log("i:"+i);
-                                                    if(count===results1.length) {
-                                                        console.log(i+"m here"+results1.length);
-                                                        res.status(201).send(jsonObj);
-                                                    }
-                                                }
-                                            }, fetchquery1);
+                                    storageactivitycoll.find({username:username}).sort({activitytime:-1}).limit(5).toArray(function (err, results2) {
+                                        console.log(results2);
+                                        if (err) {
+                                            throw err;
                                         }
-                                        console.log(jsonObj);
-                                    }
-                                    else if(results1.length === 0){
-                                        console.log("here");
-                                        res.status(201).send(jsonObj);
-                                    }
-                                },fetchQuery);
+                                        if (results2.length > 0) {
+                                            let count = 0;
+                                            let storagecoll = mongo.collection("dropboxstorage");
+                                            for (i = 0; i < results2.length; i++) {
+                                                let tempObj = {};
+                                                tempObj["activitytype"] = results2[i].activitytype;
+                                                tempObj["activitytime"] = results2[i].activitytime;
+
+                                                storagecoll.find({_id:ObjectId(results2[i].itemid)}).toArray(function (err, results3) {
+                                                    console.log(results3);
+                                                    if (err) {
+                                                        console.log(err);
+                                                        throw "Error while fetching file/folder name";
+                                                    }
+                                                    if(results3.length===1){
+                                                        tempObj["name"] = results3[0].name;
+                                                        tempObj["type"] = results3[0].type;
+                                                        jsonObj.push(tempObj);
+                                                        count++;
+                                                        console.log("i:" + i);
+                                                        if (count === results2.length) {
+                                                            console.log(i + ":" + results2.length);
+                                                            res.status(201).send(jsonObj);
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                            console.log(jsonObj);
+                                        }
+                                        else if (results2.length === 0) {
+                                            res.status(201).send(jsonObj);
+                                        }
+                                    });
+                                }
+                                else {
+                                    res.status(301).send({"message":"Unrecognized Error. No activity found"});
+                                }
                             }
-                            else {
-                                res.status(301).send({"message":"Unrecognized Error. No activity found"});
-                            }
-                        }
-                    },fetchQuery);
-                }
-            },fetchQuery);
+                        });
+                    }
+                });
+            });
         }
         else{
             res.status(203).send({"message":"Session Expired. Please Login Again"});
@@ -1024,28 +824,33 @@ router.post('/changeProfile', function (req, res, next) {
             console.log(username);
             let data = req.body;
             console.log(data);
-            updateQuery="update userprofile " +
-                "set overview='"+ data.overview + "'," +
-                " education= '"+ data.education + "'," +
-                " contactinfo= '"+ data.contactinfo + "'," +
-                " lifeevents= '"+ data.lifeevent + "'," +
-                " work= '"+ data.work + "'," +
-                " music= "+ data.music + "," +
-                " reading= "+ data.reading+ "," +
-                " sports= "+ data.sports +
-                " where username = '"+username+"';";
-
-
-            console.log(updateQuery);
-            mysql.updateData(function(err,results) {
-                console.log(results);
-                if (err) {
-                    throw err;
+            updateQuery= {
+                $set : {
+                    overview : data.overview,
+                    education : data.education,
+                    contactinfo : data.contactinfo,
+                    lifeevents : data.lifeevent,
+                    work : data.work,
+                    music : data.music,
+                    reading : data.reading,
+                    sports : data.sports,
                 }
-                if (results.affectedRows === 1) {
-                    res.status(201).send({"message":"Profile updated successfully"});
-                }
-            },updateQuery);
+            };
+
+            mongo.connect(mongoURL, function () {
+                mongo.collection("userprofile").updateOne({_id:username},updateQuery, function (err, results) {
+                    console.log(results);
+                    if (err) {
+                        throw err;
+                    }
+                    if (results.result.nModified === 1) {
+                        res.status(201).send({"message":"Profile updated successfully"});
+                    }
+                    else {
+                        res.status(301).send({"message":"Failed to Update Profile"});
+                    }
+                });
+            });
         }
         else{
             res.status(203).send({"message":"Session Expired. Please Login Again"});
@@ -1058,23 +863,26 @@ router.post('/changeProfile', function (req, res, next) {
 });
 
 router.get('/getprofile', function (req, res, next) {
+    console.log("Here O m");
     try {
-        console.log("In fetching activity");
+        console.log("In fetching profile");
         if(req.session.username!==null || req.session.username!==undefined) {
             let username = req.session.username;
-            let data = req.body;
-            console.log(data);
-            fetchQuery="select * from userprofile where username = '"+ username +"';";
-            console.log(fetchQuery);
-            mysql.fetchData(function(err,results1) {
-                console.log(results1);
-                if (err) {
-                    throw err;
-                }
-                if (results1.length === 1) {
-                    res.status(201).send(results1);
-                }
-            },fetchQuery);
+            mongo.connect(mongoURL,function () {
+                let profile = mongo.collection("userprofile");
+                profile.find({_id:username}).toArray(function (err, results) {
+                   console.log(results);
+                    if (err) {
+                        throw err;
+                    }
+                    if (results.length === 1) {
+                        res.status(201).send(results);
+                    }
+                    else {
+                        res.status(301).send({"message":"Failed to fetch Profile Data"});
+                    }
+                });
+            });
         }
         else{
             res.status(203).send({"message":"Session Expired. Please Login Again"});
@@ -1082,6 +890,7 @@ router.get('/getprofile', function (req, res, next) {
     }
     catch (e){
         console.log(e);
+        console.log("error");
         res.status(301).send({"message" : "Error while fetching activity data"});
     }
 });
@@ -1175,19 +984,21 @@ router.post('/deleteContent', function (req, res, next) {
 
 function doesExist (callback, name, path){
     try {
-        let fetchQuery = "select count(*) as records from dropboxstorage where name = '" + name + "' AND path = '" + path + "';";
-        console.log("Fetch Query: " + fetchQuery);
-        let exists=true;
-        mysql.fetchData(function (err, results) {
-            if (err) {
-                console.log("Fetched Records: " + results[0].records);
-            }
-            if(results[0].records===0) {
-                console.log("Count: " + results[0].records);
-                exists=false;
-            }
-            callback(err, exists);
-        }, fetchQuery);
+        mongo.connect(mongoURL,function () {
+            let exists=true;
+            let storagecoll = mongo.collection("dropboxstorage");
+            storagecoll.find({$and:[{name:name}, {path:path}]}).toArray(function (err, results) {
+                console.log(results);
+                if (err) {
+                    console.log("Fetched Records: " + results.length);
+                }
+                if(results.length===0) {
+                    console.log("Count: " + results.length);
+                    exists=false;
+                }
+                callback(err, exists);
+            });
+        });
     }
     catch (err){
         console.log(err);
@@ -1196,10 +1007,6 @@ function doesExist (callback, name, path){
 
 function insertIntoStorage (callback, name, path, type, username){
     try{
-        // console.log(name);
-        // console.log(path);
-        // console.log(type);
-        // console.log(username);
         let ctime;
         // let mtime;
         let size;
@@ -1217,56 +1024,47 @@ function insertIntoStorage (callback, name, path, type, username){
                 path : path,
                 creationtime : ctime,
                 size : size,
-                username : username
+                ownerusername : username,
+                starred : false,
+                sharedstatus : false,
             };
-
-            let insertQuery = "insert into dropboxstorage (name, type, path, creationtime, size, ownerusername) " +
-                "values('" + name + "','" + type + "','" + path + "','" + ctime + "','" + size + "','" + username + "');";
-            console.log("Insert Query : " + insertQuery);
 
             mongo.connect(mongoURL, function () {
                 let storagecoll = mongo.collection("dropboxstorage");
-                storagecoll.insertOne(function (err, results) {
-                    console.log(results);
-
+                storagecoll.insertOne(insertData, function (err, results) {
+                    console.log(results.insertedId);
                     if (err) {
                         throw err;
                     }
                     else {
-                        console.log("Affected Rows: " + results.affectedRows);
-                        console.log(results);
-                        if (results.affectedRows === 1) {
+                        if (results.insertedCount === 1) {
                             console.log("data inserted successfully");
                             dataInserted = true;
-                            let fetchQuery = "select id, creationtime from dropboxstorage " +
-                                "where name = '" + name + "' AND path = '" + path + "';";
-                            mysql.fetchData(function (err, results1) {
+                            storagecoll.findOne({_id:results.insertedId},function (err, results1) {
+                                console.log(results1);
                                 if(err){
                                     console.log(err);
                                 }
-                                if(results1.length===1){
+                                if(results1!==null || results1!==undefined){
                                     act.insertIntoActivity(function (err, results2) {
                                         if(err){
                                             console.log(err);
                                         }
                                         console.log("Activity added : "+results2)
-                                    }, username, "insert", results1[0].id, results1[0].creationtime );
+                                    }, username, "insert", results1._id, results1.creationtime );
                                 }
                                 else{
                                     console.log("does not contain the data")
                                 }
-
-                            }, fetchQuery);
-
+                            });
                         }
                         else {
                             console.log("Error while inserting data into database");
                         }
                     }
                     callback(err, dataInserted)
-                }, insertQuery);
+                });
             });
-
         });
     }
     catch (e){

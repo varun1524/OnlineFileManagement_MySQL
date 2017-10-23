@@ -442,12 +442,8 @@ router.post('/getStarredData', function (req, res, next) {
             },fetchQuery);
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -570,12 +566,8 @@ router.post('/getDataSharedByUser', function (req, res, next) {
             },fetchQuery);
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -715,12 +707,8 @@ router.post('/fetchDataSharedWithUser', function (req, res, next) {
             },fetchQuery);
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -785,12 +773,8 @@ router.post('/accessSelectedSharedData', function (req, res, next) {
             },fetchQuery);
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -841,12 +825,8 @@ router.post('/accessSharedData', function (req, res, next) {
             },fetchQuery);
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -1171,7 +1151,6 @@ router.post('/deleteContent', function (req, res, next) {
         res.status(301).send({"message" : e});
     }
 });
-
 
 function doesExist (callback, name, path){
     try {

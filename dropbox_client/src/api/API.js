@@ -14,7 +14,7 @@ export const doSignUp = (payload) =>
             },
             body: JSON.stringify(payload)
         }).then(res => {
-            return res.status;
+        return res.status;
     }).catch(error => {
         console.log("Error: "+error);
         return error;
@@ -265,23 +265,16 @@ export const changeProfile = (payload) =>
         return error;
     });
 
-export const getprofile = (payload) =>
-    fetch (`${api}/users/getprofile`,
-        {
-            method: 'GET',
-            headers: {
-                ...headers,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload),
-            credentials: 'include'
-        }).then(res => {
+export const getprofile = () =>
+    fetch (`${api}/users/getprofile`, {
+        method: 'GET',
+        credentials:'include'
+    }).then(res => {
         return res;
     }).catch(error => {
-        console.log("Error: " + error);
-        return error;
+            console.log("This is error");
+            return error;
     });
-
 
 export const getActivityData = () =>
     fetch (`${api}/users/getActivityData`,
