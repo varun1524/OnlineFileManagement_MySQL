@@ -6,7 +6,6 @@ var mongoURL = "mongodb://localhost:27017/dropbox";
 var act = require('./activity');
 var bcrypt = require('bcrypt');
 
-
 /* GET Sign Up Page. */
 router.get('/', function(req, res, next) {
     res.render('index', { title: 'Express' });
@@ -18,7 +17,7 @@ router.post('/doSignUp', function(req, res, next){
 
         var salt = bcrypt.genSaltSync(10);
 
-        var data ={
+        let data = {
             _id : req.body.username,
             firstname : req.body.firstname,
             lastname : req.body.lastname,
@@ -28,7 +27,7 @@ router.post('/doSignUp', function(req, res, next){
 
         mongo.connect(mongoURL, function () {
             var usercollection = mongo.collection('users');
-            usercollection.findOne({username:data._id}, function(err, result) {
+            usercollection.findOne({_id:data._id}, function(err, result) {
                 if(err){
                     console.log(err);
                     throw err;
@@ -95,71 +94,6 @@ router.post('/doSignUp', function(req, res, next){
                 }
             });
         });
-        // mysql.fetchData(function (err,results) {
-        //     console.log(results);
-        //     console.log(results.length);
-        //     if(err){
-        //         throw err;
-        //     }
-        //     else
-        //     {
-        //         if(results.length===1){
-        //             console.log("User Exists");
-        //             res.status(301).json({message: "username already exist"})
-        //         }
-        //         else{
-        //
-        //             var salt = bcrypt.genSaltSync(10);
-        //
-        //             var hash = bcrypt.hashSync(data.password, salt);
-        //
-        //             console.log(salt);
-        //             console.log(hash);
-        //
-        //             var insertUser="insert into users (username,firstname,lastname,hashpassword, salt) " +
-        //                 "values('"+data.username+"','"+data.firstname+"','"+data.lastname+"','"+hash+"','"+salt+"');";
-        //             console.log("Insert Query : " + insertUser);
-        //             //var insertUser="insert into users (username, firstname, lastname, password, address) values('varun@yahoo.com','varun','shah','varun123','1246 alameda')";
-        //
-        //             mysql.insertData(function(err,results){
-        //                 console.log(results);
-        //                 if(err){
-        //                     throw err;
-        //                 }
-        //                 else
-        //                 {
-        //                     console.log("Affected Rows: "+results.affectedRows);
-        //                     console.log(results);
-        //                     if(results.affectedRows === 1){
-        //                         console.log("Sign up successful");
-        //                         insertUser="insert into userprofile (overview,work,education,contactinfo, lifeevents, music, sports, reading, username) " +
-        //                             "values('','','','','',false,false,false,'"+ data.username +"');";
-        //                         mysql.insertData(function (err, result2) {
-        //                             console.log(result2);
-        //                             if(err){
-        //                                 console.log(err);
-        //                                 throw "Error while adding data into userprofile table";
-        //                             }
-        //                             // act.insertIntoActivity(function (err, results3) {
-        //                             //     if(err){
-        //                             //         console.log(err);
-        //                             //         res.status(301).json({message: "Signup Successful. Failed to add user activity"});
-        //                             //     }
-        //                             //     console.log(results3);
-        //                                 res.status(201).json({message: "Signup successful"});
-        //                             //     createUserDirectory(data.username);
-        //                             // },data.username, "signup");
-        //                         },insertUser);
-        //                     }
-        //                     else {
-        //                         console.log("Error while inserting data into database");
-        //                         res.status(401).json({message: "Signup Failed"});
-        //                     }
-        //                 }
-        //             },insertUser);
-        //         }
-        //     }
-        // }, fetchUser);
     }
     catch (e){
         console.log(e);

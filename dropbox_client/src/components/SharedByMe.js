@@ -37,7 +37,8 @@ class SharedByMe extends Component{
                 <td className="text-justify">
                     <div className="u-table-row">
                     {this.showItemType(item.type)}
-                    <input type="button" value={ item.name.substr(0, 20) } className="btn-link" onClick={()=>{this.props.fetchSelectedDirectoryData(item)}}/>
+                    <input type="button" value={ (item.name !== undefined ? item.name.substr(0, 20) : "") } className="btn-link"
+                           onClick={()=>{this.props.fetchSelectedDirectoryData(item)}}/>
                     </div>
                 </td>
                 <td>

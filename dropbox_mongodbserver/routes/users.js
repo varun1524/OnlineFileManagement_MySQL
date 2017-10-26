@@ -529,7 +529,7 @@ router.post('/fetchDataSharedWithUser', function (req, res, next) {
 
                                     }
 
-                                },fetchQuery);
+                                });
                             }
 
                         }
@@ -541,12 +541,8 @@ router.post('/fetchDataSharedWithUser', function (req, res, next) {
             });
         }
         else{
-            res.status(204).send({"message":"Directory is Empty"});
+            res.status(203).send({"message":"Session Expired. Please Login Again"});
         }
-        // }
-        // else{
-        //     res.status(203).send({"message":"Session Expired. Please Login Again"});
-        // }
     }
     catch (e){
         console.log(e);
@@ -871,7 +867,7 @@ router.get('/getprofile', function (req, res, next) {
             mongo.connect(mongoURL,function () {
                 let profile = mongo.collection("userprofile");
                 profile.find({_id:username}).toArray(function (err, results) {
-                   console.log(results);
+                    console.log(results);
                     if (err) {
                         throw err;
                     }
@@ -902,41 +898,77 @@ router.post('/deleteContent', function (req, res, next) {
             let username = req.session.username;
             console.log(req.body);
             let item = req.body.id;
-            let fetchQuery = "select type, name, path from dropboxstorage where id = '"+ item + "' " +
-                "AND ownerusername = '"+ username +"';";
 
-            mysql.fetchData(function(err,results){
-                console.log(results);
-                if(err){
-                    console.log(err);
-                    throw err;
-                }
-                if(results.length===1) {
-                    let deleteQuery="delete from dropboxstorage where path LIKE '"+ results[0].path+"%' AND " +
-                        "id = '"+ item +"' "+
-                        "AND ownerusername= '"+ username +"';";
-                    // act.insertIntoActivity(function (err, dataInserted) {
-                    //     if(dataInserted){
-                    //         console.log("Added to Activity");
-                    //     }
-                    //     else{
-                    //         console.log("Failed to add Activity");
-                    //     }
-                    // }, username, "delete", item);
-                    mysql.deleteData(function (err, results1) {
-                        console.log(results1);
-                        if(err){
-                            console.log(err);
-                            throw err;
-                        }
-                        if(results1.affectedRows>0){
-                            if(results[0].type==="d") {
-                                let deleteQuery = "delete from dropboxstorage where path LIKE '" +
-                                    results[0].path + results[0].name + "%'" +
-                                    "AND ownerusername= '" + username + "';";
-                                mysql.deleteData(function (err, results2) {
-                                    console.log("Content Deleted Successfully");
-                                    if (results2.affectedRows >= 0) {
+            mongo.connect(mongoURL, function () {
+                let content = {
+                    _id : ObjectId(item),
+                    ownerusername : username
+                };
+
+                let storagecollection = mongo.collection("dropboxstorage");
+                storagecollection.find({$and:[{_id : content._id},{ownerusername : username}]}).toArray(function (err, results){
+                    console.log(results);
+                    if(err){
+                        console.log(err);
+                        throw err;
+                    }
+                    if(results.length===1) {
+                        let deleteContent = {
+                            path : results[0].path,
+                        };
+                        console.log(deleteContent);
+                        storagecollection.deleteOne({$and:[{_id : content._id},{ownerusername : username},{path : deleteContent.path}]},
+                            function (err, results1) {
+                                console.log(results1.result.n);
+                                if(err){
+                                    console.log(err);
+                                    throw err;
+                                }
+                                if(results1.deletedCount === 1){
+                                    if(results[0].type==="d") {
+                                        storagecollection.deleteMany({$and:[{ownerusername:username},{path: {$regex: deleteContent.path+ results[0].name +"/.*"}}]},
+                                            function (err, results2) {
+                                                console.log(results2.result.n);
+                                                console.log(results2.deletedCount);
+                                                if(err){
+                                                    console.log("Failed to remove data inside the directory");
+                                                    throw err;
+                                                }
+                                                if (results2.result.n >= 0) {
+                                                    deleteFromFileSystem(function (err, deleteResult) {
+                                                        if (deleteResult) {
+                                                            res.status(201).send({"message": "Deleted Successfully"});
+                                                        }
+                                                        else {
+                                                            res.status(301).send({"message": "Deleted Unsuccessful"})
+                                                        }
+                                                    }, results[0].name, results[0].path);
+                                                }
+                                                else {
+                                                    console.log("Failed to Remove");
+                                                }
+                                            });
+                                        // let deleteQuery = "delete from dropboxstorage where path LIKE '" +
+                                        //     results[0].path + results[0].name + "%'" +
+                                        //     "AND ownerusername= '" + username + "';";
+                                        // mysql.deleteData(function (err, results2) {
+                                        //     console.log("Content Deleted Successfully");
+                                        //     if (results2.affectedRows >= 0) {
+                                        //         deleteFromFileSystem(function (err, deleteResult) {
+                                        //             if (deleteResult) {
+                                        //                 res.status(201).send({"message": "Deleted Successfully"});
+                                        //             }
+                                        //             else {
+                                        //                 res.status(301).send({"message": "Deleted Unsuccessful"})
+                                        //             }
+                                        //         }, results[0].name, results[0].path);
+                                        //     }
+                                        //     else {
+                                        //         console.log("Failed to Remove");
+                                        //     }
+                                        // }, deleteQuery);
+                                    }
+                                    else if(results[0].type==="f"){
                                         deleteFromFileSystem(function (err, deleteResult) {
                                             if (deleteResult) {
                                                 res.status(201).send({"message": "Deleted Successfully"});
@@ -946,31 +978,17 @@ router.post('/deleteContent', function (req, res, next) {
                                             }
                                         }, results[0].name, results[0].path);
                                     }
-                                    else {
-                                        console.log("Failed to Remove");
-                                    }
-                                }, deleteQuery);
-                            }
-                            else if(results[0].type==="f"){
-                                deleteFromFileSystem(function (err, deleteResult) {
-                                    if (deleteResult) {
-                                        res.status(201).send({"message": "Deleted Successfully"});
-                                    }
-                                    else {
-                                        res.status(301).send({"message": "Deleted Unsuccessful"})
-                                    }
-                                }, results[0].name, results[0].path);
-                            }
-                        }
-                        else {
-                            console.log("Error while deletion");
-                        }
-                    }, deleteQuery);
-                }
-                else {
-                    res.status(204).send({"message":"Directory is Empty"});
-                }
-            },fetchQuery);
+                                }
+                                else {
+                                    console.log("Error while deletion");
+                                }
+                            });
+                    }
+                    else {
+                        res.status(204).send({"message":"Directory is Empty"});
+                    }
+                });
+            });
         }
         else{
             res.status(203).send({"message":"Session Expired. Please Login Again"});
